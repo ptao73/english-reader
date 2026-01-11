@@ -1,0 +1,199 @@
+/* 阅读器容器 */
+.reader {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* 文章头部 */
+.reader-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.reader-header h1 {
+  font-size: 28px;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+}
+
+.reader-header .meta {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* 进度条 */
+.progress-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  margin-bottom: 32px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4F46E5, #7C3AED);
+  transition: width 0.3s ease;
+}
+
+/* 阅读内容区 */
+.reader-content {
+  margin: 32px 0;
+}
+
+/* 快速导航 */
+.quick-nav {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 32px 0;
+}
+
+.quick-nav button {
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quick-nav button:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.quick-nav button:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+/* 句子列表 */
+.sentence-list {
+  margin-top: 40px;
+  border-top: 2px solid #e5e7eb;
+  padding-top: 24px;
+}
+
+.toggle-list {
+  width: 100%;
+  background: #f3f4f6;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-list:hover {
+  background: #e5e7eb;
+}
+
+.list-content {
+  margin-top: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item:hover {
+  background: #f9fafb;
+}
+
+.list-item.active {
+  background: #eff6ff;
+  border-left: 3px solid #4F46E5;
+}
+
+.list-item .index {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5e7eb;
+  color: #6b7280;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.list-item.active .index {
+  background: #4F46E5;
+  color: white;
+}
+
+.list-item .text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+/* 滚动条样式 */
+.list-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.list-content::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.list-content::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.list-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .reader {
+    padding: 12px;
+  }
+
+  .reader-header h1 {
+    font-size: 22px;
+  }
+
+  .reader-header .meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .quick-nav {
+    flex-direction: column;
+  }
+
+  .quick-nav button {
+    width: 100%;
+  }
+}

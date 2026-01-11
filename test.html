@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试页面</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .info {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    button {
+      background: #4F46E5;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #4338CA;
+    }
+  </style>
+</head>
+<body>
+  <h1>✅ 服务器运行正常!</h1>
+  
+  <div class="success">
+    <h2>🎉 恭喜!</h2>
+    <p>Vite开发服务器已成功启动。这个测试页面证明了基础设施工作正常。</p>
+  </div>
+
+  <div class="info">
+    <h3>📱 下一步:</h3>
+    <ol>
+      <li>在Mac浏览器访问: <code>http://localhost:3000</code></li>
+      <li>在iPhone访问: <code>http://[你的Mac IP]:3000</code></li>
+      <li>如果看到这个页面,说明服务器正常</li>
+    </ol>
+  </div>
+
+  <h3>🔧 快速测试:</h3>
+  <button onclick="testAPI()">测试API配置</button>
+  <button onclick="testIndexedDB()">测试IndexedDB</button>
+  <button onclick="window.location.href='/'">返回主应用</button>
+
+  <div id="result"></div>
+
+  <script>
+    function testAPI() {
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+      const result = document.getElementById('result');
+      
+      if (apiKey) {
+        result.innerHTML = '<div class="success">✅ API Key已配置 (长度: ' + apiKey.length + ')</div>';
+      } else {
+        result.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 8px;">⚠️ API Key未配置,请设置.env文件</div>';
+      }
+    }
+
+    function testIndexedDB() {
+      const result = document.getElementById('result');
+      
+      if ('indexedDB' in window) {
+        result.innerHTML = '<div class="success">✅ IndexedDB支持正常</div>';
+      } else {
+        result.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 8px;">❌ IndexedDB不支持</div>';
+      }
+    }
+
+    // 自动检测
+    window.onload = function() {
+      console.log('✅ JavaScript加载成功');
+      console.log('环境变量:', import.meta.env);
+    };
+  </script>
+</body>
+</html>
