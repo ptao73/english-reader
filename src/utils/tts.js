@@ -51,27 +51,35 @@ class BrowserTTSEngine extends TTSEngine {
     const voices = this.synthesis.getVoices();
     
     // 优先级列表 (按音质从高到低)
+    // macOS 高级语音需在 系统设置 > 辅助功能 > 朗读内容 > 管理声音 中下载
     const preferredVoices = [
-      // iOS/macOS - Apple 系统音质最佳
-      { name: 'Samantha', score: 100 },       // macOS 美音女声
-      { name: 'Alex', score: 95 },            // macOS 美音男声  
-      { name: 'Ava', score: 90 },             // iOS Premium
-      { name: 'Nicky', score: 85 },           // iOS Premium
-      
+      // macOS Premium 语音 (需下载，音质最佳)
+      { name: 'Ava (Premium)', score: 100 },      // 美式女声 Premium - 最自然
+      { name: 'Zoe (Premium)', score: 98 },       // 美式女声 Premium
+      { name: 'Evan (Premium)', score: 96 },      // 美式男声 Premium
+      { name: 'Samantha (Enhanced)', score: 94 }, // 美式女声 Enhanced
+      { name: 'Tom (Enhanced)', score: 92 },      // 美式男声 Enhanced
+
+      // macOS 标准高质量语音
+      { name: 'Samantha', score: 85 },            // macOS 美音女声
+      { name: 'Alex', score: 83 },                // macOS 美音男声
+      { name: 'Ava', score: 80 },                 // iOS/macOS
+      { name: 'Nicky', score: 78 },               // iOS Premium
+
       // Google - Chrome 内置
-      { name: 'Google US English', score: 80 },
-      { name: 'Google UK English Female', score: 75 },
-      { name: 'Google UK English Male', score: 70 },
-      
+      { name: 'Google US English', score: 70 },
+      { name: 'Google UK English Female', score: 68 },
+      { name: 'Google UK English Male', score: 66 },
+
       // Microsoft - Edge/Windows
-      { name: 'Microsoft Zira', score: 65 },
-      { name: 'Microsoft David', score: 60 },
-      
-      // iOS 标准音
-      { name: 'Daniel', score: 55 },
-      { name: 'Karen', score: 50 },
-      { name: 'Moira', score: 45 },
-      { name: 'Tessa', score: 40 }
+      { name: 'Microsoft Zira', score: 60 },
+      { name: 'Microsoft David', score: 58 },
+
+      // 其他英文语音
+      { name: 'Daniel', score: 50 },
+      { name: 'Karen', score: 48 },
+      { name: 'Moira', score: 46 },
+      { name: 'Tessa', score: 44 }
     ];
 
     // 按优先级查找
