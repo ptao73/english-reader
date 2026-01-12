@@ -1,0 +1,769 @@
+/* ===========================
+   全局样式 - 优化版
+   - 改善手机端体验
+   - 加大按钮点击区域
+   - 优化分析结果排版
+   =========================== */
+
+:root {
+  /* 主题色 */
+  --primary-color: #4F46E5;
+  --secondary-color: #10B981;
+  --tertiary-color: #F59E0B;
+  --danger-color: #EF4444;
+  
+  /* 中性色 */
+  --bg-color: #F9FAFB;
+  --card-bg: #FFFFFF;
+  --border-color: #E5E7EB;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  
+  /* ⭐ 优化: 增大触摸区域 */
+  --touch-target: 48px;  /* 移动端推荐最小 48px */
+  --button-padding: 16px 24px;
+  
+  /* 间距 */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 
+               'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  line-height: 1.6;
+  
+  /* ⭐ 优化: 防止双击缩放 (移动端) */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===========================
+   顶部导航栏
+   =========================== */
+
+.app-header {
+  background: white;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.nav {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* ⭐ 优化: 加大按钮点击区域 */
+.nav button {
+  min-height: var(--touch-target);
+  padding: var(--button-padding);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  /* 增加点击区域 */
+  position: relative;
+}
+
+.nav button::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+}
+
+.nav button:hover {
+  background: var(--bg-color);
+  color: var(--primary-color);
+}
+
+.nav button.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+.nav button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===========================
+   主内容区
+   =========================== */
+
+.app-main {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+/* ===========================
+   文章列表
+   =========================== */
+
+.article-list {
+  animation: fadeIn 0.3s;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.list-header h2 {
+  font-size: 1.75rem;
+  color: var(--text-primary);
+}
+
+.count {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+/* ⭐ 优化: 卡片触摸反馈 */
+.article-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s;
+  
+  /* 移动端触摸高亮 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.article-card:active {
+  transform: scale(0.98);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+}
+
+.card-header h3 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* ⭐ 优化: 删除按钮触摸区域 */
+.btn-delete {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: var(--spacing-sm);
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+
+.btn-delete:hover {
+  background: #FEE2E2;
+}
+
+.btn-delete:active {
+  transform: scale(0.9);
+}
+
+.card-meta {
+  display: flex;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.card-progress {
+  margin-bottom: var(--spacing-md);
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--bg-color);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-xs);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  transition: width 0.3s;
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* ⭐ 优化: 阅读按钮加大 */
+.btn-read {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--button-padding);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--primary-color);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-read:hover {
+  background: #4338CA;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-read:active {
+  transform: translateY(0);
+}
+
+/* ===========================
+   句子卡片 (阅读器)
+   =========================== */
+
+.sentence-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-lg);
+  margin-bottom: var(--spacing-lg);
+  transition: all 0.3s;
+}
+
+/* ⭐ 新增: 朗读时高亮效果 */
+.sentence-card.speaking {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%);
+  border: 2px solid var(--tertiary-color);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.05);
+  }
+}
+
+/* ⭐ 优化: 句子文本可点击单词 */
+.sentence-text {
+  font-size: 1.25rem;
+  line-height: 1.8;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+  word-wrap: break-word;
+}
+
+.sentence-text .word {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.sentence-text .word:hover {
+  background: #FEF3C7;
+  color: var(--tertiary-color);
+}
+
+.sentence-text .word:active {
+  transform: scale(1.1);
+}
+
+/* ⭐ 优化: 操作按钮加大间距 */
+.sentence-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.sentence-actions button {
+  min-height: var(--touch-target);
+  padding: var(--button-padding);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 140px;
+}
+
+.btn-speak {
+  background: var(--secondary-color);
+  color: white;
+}
+
+.btn-speak:hover {
+  background: #059669;
+}
+
+.btn-speak.active {
+  background: var(--danger-color);
+  animation: speaking 1s infinite;
+}
+
+@keyframes speaking {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.btn-reveal {
+  color: white;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background: #4338CA;
+}
+
+.btn-secondary {
+  background: var(--secondary-color);
+}
+
+.btn-secondary:hover {
+  background: #059669;
+}
+
+.btn-tertiary {
+  background: var(--tertiary-color);
+}
+
+.btn-tertiary:hover {
+  background: #D97706;
+}
+
+.btn-reset {
+  background: var(--text-secondary);
+  color: white;
+  min-height: var(--touch-target);
+  padding: var(--button-padding);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+/* ⭐ 优化: 分析结果排版 */
+.analysis-section {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  animation: slideIn 0.3s;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.level-1 {
+  background: #EEF2FF;
+  border-left: 4px solid var(--primary-color);
+}
+
+.level-2 {
+  background: #ECFDF5;
+  border-left: 4px solid var(--secondary-color);
+}
+
+.level-3 {
+  background: #FFFBEB;
+  border-left: 4px solid var(--tertiary-color);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.level-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.section-header h4 {
+  font-size: 1.125rem;
+  color: var(--text-primary);
+}
+
+/* ⭐ 优化: 内容区域可读性 */
+.section-content {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.section-content p {
+  margin-bottom: var(--spacing-sm);
+}
+
+.hint {
+  font-weight: 500;
+  white-space: pre-wrap;
+}
+
+.analysis {
+  white-space: pre-wrap;
+}
+
+.translation {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--tertiary-color);
+}
+
+/* ⭐ 新增: 流式输出预览 */
+.stream-preview {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: #F3F4F6;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-color);
+}
+
+.stream-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.stream-text {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* ===========================
+   生字本
+   =========================== */
+
+.vocabulary-view {
+  animation: fadeIn 0.3s;
+}
+
+.vocab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.vocab-list {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.vocab-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.vocab-word {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-sm);
+}
+
+.vocab-context {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: var(--spacing-md);
+  line-height: 1.6;
+}
+
+.vocab-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.btn-remove {
+  padding: 8px 16px;
+  border: none;
+  background: var(--danger-color);
+  color: white;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.vocab-tips {
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: #EEF2FF;
+  border-radius: var(--radius-md);
+}
+
+.vocab-tips h3 {
+  margin-bottom: var(--spacing-md);
+  color: var(--primary-color);
+}
+
+.vocab-tips ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.vocab-tips li {
+  padding: var(--spacing-xs) 0;
+  color: var(--text-secondary);
+}
+
+/* ===========================
+   底部
+   =========================== */
+
+.app-footer {
+  background: white;
+  border-top: 1px solid var(--border-color);
+  padding: var(--spacing-lg);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.tip {
+  margin-top: var(--spacing-xs);
+  color: var(--tertiary-color);
+  font-weight: 600;
+}
+
+/* ===========================
+   响应式设计
+   =========================== */
+
+/* ⭐ 优化: 移动端布局 */
+@media (max-width: 768px) {
+  .app-main {
+    padding: var(--spacing-md);
+  }
+  
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+  
+  .nav {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .nav button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .list-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .sentence-card {
+    padding: var(--spacing-lg);
+  }
+  
+  .sentence-text {
+    font-size: 1.125rem;
+  }
+  
+  .sentence-actions {
+    flex-direction: column;
+  }
+  
+  .sentence-actions button {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  /* 移动端增大字体 */
+  .section-content {
+    font-size: 1.05rem;
+  }
+}
+
+/* ⭐ 优化: 超小屏幕 (iPhone SE) */
+@media (max-width: 375px) {
+  .logo {
+    font-size: 1.25rem;
+  }
+  
+  .sentence-text {
+    font-size: 1rem;
+  }
+  
+  .section-content {
+    font-size: 0.95rem;
+  }
+}
+
+/* ===========================
+   辅助动画
+   =========================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.app-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  gap: var(--spacing-md);
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-lg);
+}
+
+.empty-state h2 {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+}
+
+.error-message {
+  padding: var(--spacing-md);
+  background: #FEE2E2;
+  border-radius: var(--radius-md);
+  color: var(--danger-color);
+  margin-top: var(--spacing-md);
+}
