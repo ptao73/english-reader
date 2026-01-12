@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import mammoth from 'mammoth';
 import { db } from '../db/schema.js';
 import { parseArticle } from '../utils/textParser.js';
 import './ArticleImport.css';
@@ -82,17 +83,26 @@ export default function ArticleImport({ onImported }) {
 
     try {
       let text = '';
-      
+
       if (ext === 'txt') {
         // 直接读取文本
         text = await file.text();
-      } else if (ext === 'pdf' || ext === 'doc' || ext === 'docx') {
-        // PDF和Word需要后端处理或使用库
-        // 暂时提示用户转换为txt
-        setError(`${ext.toUpperCase()}文件支持开发中,请先转换为.txt格式\n\n建议:\n1. 打开文档\n2. 全选复制文本(Cmd+A, Cmd+C)\n3. 粘贴到上方文本框`);
+      } else if (ext === 'docx') {
+        // 使用 mammoth 解析 DOCX 文件
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = result.value;
+
+        if (!text.trim()) {
+          setError('DOCX文件内容为空或无法解析');
+          return;
+        }
+      } else if (ext === 'pdf' || ext === 'doc') {
+        // PDF 和旧版 DOC 暂不支持
+        setError(`${ext.toUpperCase()}文件支持开发中,请先转换为.txt或.docx格式\n\n建议:\n1. 打开文档\n2. 全选复制文本(Cmd+A, Cmd+C)\n3. 粘贴到上方文本框`);
         return;
       }
-      
+
       setContent(text);
 
       // 自动填充标题(如果为空)
@@ -123,7 +133,7 @@ export default function ArticleImport({ onImported }) {
     <div className="article-import">
       <div className="import-header">
         <h2>📚 导入文章</h2>
-        <p>支持粘贴文本或上传.txt文件</p>
+        <p>支持粘贴文本或上传.txt/.docx文件</p>
       </div>
 
       {error && (
@@ -171,7 +181,7 @@ export default function ArticleImport({ onImported }) {
             rows={15}
           />
           <div className="hint">
-            支持拖拽.txt文件到此区域 | 粘贴后会自动生成标题
+            支持拖拽.txt/.docx文件到此区域 | 粘贴后会自动生成标题
           </div>
         </div>
 
