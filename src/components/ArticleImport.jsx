@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
 import { db } from '../db/schema.js';
 import { parseArticle } from '../utils/textParser.js';
 import './ArticleImport.css';
+
+// 配置 PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 /**
  * 文章导入组件
@@ -97,9 +101,28 @@ export default function ArticleImport({ onImported }) {
           setError('DOCX文件内容为空或无法解析');
           return;
         }
-      } else if (ext === 'pdf' || ext === 'doc') {
-        // PDF 和旧版 DOC 暂不支持
-        setError(`${ext.toUpperCase()}文件支持开发中,请先转换为.txt或.docx格式\n\n建议:\n1. 打开文档\n2. 全选复制文本(Cmd+A, Cmd+C)\n3. 粘贴到上方文本框`);
+      } else if (ext === 'pdf') {
+        // 使用 PDF.js 解析 PDF 文件
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += pageText + '\n';
+        }
+
+        text = fullText.trim();
+
+        if (!text) {
+          setError('PDF文件内容为空或无法解析（可能是扫描版PDF）');
+          return;
+        }
+      } else if (ext === 'doc') {
+        // 旧版 DOC 格式浏览器无法直接解析
+        setError('旧版.doc格式暂不支持，请用Word打开后另存为.docx格式');
         return;
       }
 
@@ -133,7 +156,7 @@ export default function ArticleImport({ onImported }) {
     <div className="article-import">
       <div className="import-header">
         <h2>📚 导入文章</h2>
-        <p>支持粘贴文本或上传.txt/.docx文件</p>
+        <p>支持粘贴文本或上传.txt/.docx/.pdf文件</p>
       </div>
 
       {error && (
@@ -181,7 +204,7 @@ export default function ArticleImport({ onImported }) {
             rows={15}
           />
           <div className="hint">
-            支持拖拽.txt/.docx文件到此区域 | 粘贴后会自动生成标题
+            支持拖拽.txt/.docx/.pdf文件到此区域 | 粘贴后会自动生成标题
           </div>
         </div>
 
