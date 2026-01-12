@@ -1,58 +1,71 @@
 import { useState, useEffect } from 'react';
-import { db } from '../db/schema.js';
-import { getSentenceAnalysis } from '../utils/ai.js';
+import { getSentenceAnalysisStream } from '../utils/ai.js';
 import { tts } from '../utils/tts.js';
 import './SentenceCard.css';
 
 /**
- * 句子卡片组件 - 反直觉学习的核心实现
+ * 句子卡片组件 - 优化版
  * 
- * 三层揭示设计:
- * Level 1: 💡 提示 - 最少信息,强迫思考
- * Level 2: 📖 深度分析 - 完整语法解析
- * Level 3: 🈯 中文翻译 - 兜底确认
+ * 核心功能:
+ * - 三层渐进式揭示 (反直觉学习)
+ * - ⭐ Stream 流式输出
+ * - ⭐ 朗读高亮显示
+ * - ⭐ 单词点击收藏
  */
-export default function SentenceCard({ sentence, onNext, onPrevious }) {
-  const [level, setLevel] = useState(1);
+export default function SentenceCard({ sentence, onSaveWord }) {
+  const [revealLevel, setRevealLevel] = useState(0);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // ⭐ 新增: 流式输出状态
+  const [streamText, setStreamText] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+
+  // ⭐ 新增: 朗读状态
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // 加载已保存的reveal状态
+  /**
+   * 重置状态
+   */
   useEffect(() => {
-    loadRevealState();
+    setRevealLevel(0);
+    setAnalysis(null);
+    setError(null);
+    setStreamText('');
+    setIsStreaming(false);
+    setIsSpeaking(false);
   }, [sentence.sentenceId]);
 
   /**
-   * 从数据库加载reveal状态
+   * ⭐ 获取分析 (支持流式输出)
    */
-  async function loadRevealState() {
-    try {
-      const state = await db.revealState.get(sentence.sentenceId);
-      if (state) {
-        setLevel(state.level);
-      } else {
-        setLevel(1); // 默认从Level 1开始
-      }
-    } catch (err) {
-      console.error('加载状态失败:', err);
-      setLevel(1);
-    }
-  }
+  async function fetchAnalysis() {
+    if (analysis) return;
 
-  /**
-   * 保存reveal状态到数据库
-   */
-  async function saveRevealState(newLevel) {
+    setLoading(true);
+    setError(null);
+    setIsStreaming(true);
+    setStreamText('');
+
     try {
-      await db.revealState.put({
-        sentenceId: sentence.sentenceId,
-        level: newLevel,
-        updatedAt: new Date().toISOString()
-      });
+      const result = await getSentenceAnalysisStream(
+        sentence.sentenceId,
+        sentence.text,
+        // ⭐ 流式回调
+        (chunk, fullText) => {
+          setStreamText(fullText);
+        }
+      );
+
+      setAnalysis(result);
+      setIsStreaming(false);
     } catch (err) {
-      console.error('保存状态失败:', err);
+      console.error('分析失败:', err);
+      setError(err.message);
+      setIsStreaming(false);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -60,203 +73,188 @@ export default function SentenceCard({ sentence, onNext, onPrevious }) {
    * 揭示下一层
    */
   async function revealNext() {
-    // 如果是第一次点击,需要先加载AI分析
-    if (level === 1 && !analysis) {
-      await loadAnalysis();
+    if (revealLevel === 0) {
+      // 第一次点击,加载分析
+      await fetchAnalysis();
     }
-
-    // 增加level
-    const newLevel = Math.min(level + 1, 3);
-    setLevel(newLevel);
-    await saveRevealState(newLevel);
-  }
-
-  /**
-   * 重置到Level 1(重新思考)
-   */
-  async function resetLevel() {
-    setLevel(1);
-    await saveRevealState(1);
-  }
-
-  /**
-   * 加载AI分析
-   */
-  async function loadAnalysis() {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await getSentenceAnalysis(
-        sentence.sentenceId,
-        sentence.text
-      );
-      setAnalysis(result);
-    } catch (err) {
-      console.error('分析失败:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    
+    if (revealLevel < 3) {
+      setRevealLevel(prev => prev + 1);
     }
   }
 
   /**
-   * 朗读句子
+   * ⭐ 朗读句子 (带高亮效果)
    */
-  async function handleSpeak() {
+  async function speakSentence() {
     if (isSpeaking) {
       tts.stop();
       setIsSpeaking(false);
-    } else {
-      try {
-        setIsSpeaking(true);
-        await tts.speak(sentence.text, {
-          rate: 0.85,  // 稍慢一点,方便学习
-          pitch: 1.0,
-          volume: 1.0
-        });
-        setIsSpeaking(false);
-      } catch (err) {
-        console.error('朗读失败:', err);
-        setIsSpeaking(false);
-      }
+      return;
+    }
+
+    try {
+      await tts.speak(sentence.text, {
+        rate: 0.85,
+        onStart: () => {
+          setIsSpeaking(true);
+        },
+        onEnd: () => {
+          setIsSpeaking(false);
+        },
+        onError: (err) => {
+          console.error('朗读失败:', err);
+          setIsSpeaking(false);
+          alert('朗读失败,请重试');
+        }
+      });
+    } catch (err) {
+      console.error('朗读异常:', err);
+      setIsSpeaking(false);
     }
   }
 
   /**
-   * 判断按钮状态
+   * ⭐ 处理单词点击 (收藏功能)
    */
-  const canReveal = level < 3;
-  const isMaxLevel = level === 3;
+  function handleWordClick(event) {
+    const word = event.target.textContent.trim();
+    
+    // 过滤标点符号
+    const cleanWord = word.replace(/[.,!?;:'"]/g, '');
+    
+    if (cleanWord.length > 1 && onSaveWord) {
+      onSaveWord(cleanWord, sentence.text);
+      
+      // 视觉反馈
+      event.target.style.backgroundColor = '#fef3c7';
+      setTimeout(() => {
+        event.target.style.backgroundColor = '';
+      }, 500);
+    }
+  }
+
+  /**
+   * 重新思考
+   */
+  function reset() {
+    setRevealLevel(0);
+  }
 
   return (
-    <div className="sentence-card">
-      {/* 句子文本 */}
+    <div className={`sentence-card ${isSpeaking ? 'speaking' : ''}`}>
+      {/* 句子文本区域 - ⭐ 支持单词点击 */}
       <div className="sentence-text">
-        <p>{sentence.text}</p>
-        <button 
-          className="btn-speak"
-          onClick={handleSpeak}
-          title={isSpeaking ? "停止朗读" : "朗读句子"}
+        {sentence.text.split(' ').map((word, index) => (
+          <span
+            key={index}
+            className="word"
+            onClick={handleWordClick}
+            title="点击收藏单词"
+          >
+            {word}{' '}
+          </span>
+        ))}
+      </div>
+
+      {/* 操作按钮 */}
+      <div className="sentence-actions">
+        <button
+          className={`btn-speak ${isSpeaking ? 'active' : ''}`}
+          onClick={speakSentence}
         >
           {isSpeaking ? '⏹ 停止' : '🔊 朗读'}
         </button>
-      </div>
 
-      {/* 加载状态 */}
-      {loading && (
-        <div className="loading">
-          <div className="spinner"></div>
-          <span>AI正在分析句子...</span>
-        </div>
-      )}
+        {revealLevel === 0 && (
+          <button
+            className="btn-reveal btn-primary"
+            onClick={revealNext}
+            disabled={loading}
+          >
+            {loading ? '⏳ 分析中...' : '💡 查看提示'}
+          </button>
+        )}
+      </div>
 
       {/* 错误提示 */}
       {error && (
-        <div className="error">
-          <p>❌ {error}</p>
-          <button onClick={loadAnalysis}>重试</button>
+        <div className="error-message">
+          ❌ {error}
+          <button onClick={fetchAnalysis}>重试</button>
         </div>
       )}
 
-      {/* 分析内容(根据level逐层显示) */}
-      {analysis && !loading && (
-        <div className="analysis-content">
-          {/* Level 1: 提示 */}
-          {level >= 1 && (
-            <div className="hint-section">
-              <div className="section-header">
-                <span className="badge">💡 提示</span>
-                <span className="tip">先自己思考,不要依赖答案</span>
-              </div>
-              <div className="content">
-                <pre>{analysis.hint}</pre>
-              </div>
-            </div>
-          )}
+      {/* ⭐ 流式输出预览 (调试用) */}
+      {isStreaming && (
+        <div className="stream-preview">
+          <div className="stream-label">正在生成...</div>
+          <pre className="stream-text">{streamText}</pre>
+        </div>
+      )}
 
-          {/* Level 2: 深度分析 */}
-          {level >= 2 && (
-            <div className="analysis-section">
-              <div className="section-header">
-                <span className="badge">📖 深度分析</span>
-              </div>
-              <div className="content">
-                <pre>{analysis.analysis}</pre>
-              </div>
-            </div>
-          )}
-
-          {/* Level 3: 中文翻译 */}
-          {level >= 3 && (
-            <div className="translation-section">
-              <div className="section-header">
-                <span className="badge">🈯 中文翻译</span>
-              </div>
-              <div className="content">
-                <p>{analysis.zh}</p>
-              </div>
-            </div>
+      {/* Level 1: 提示 */}
+      {revealLevel >= 1 && analysis && (
+        <div className="analysis-section level-1">
+          <div className="section-header">
+            <span className="level-badge">Level 1</span>
+            <h4>💡 提示</h4>
+          </div>
+          <div className="section-content hint">
+            {analysis.hint}
+          </div>
+          {revealLevel === 1 && (
+            <button
+              className="btn-reveal btn-secondary"
+              onClick={revealNext}
+            >
+              📖 查看深度分析
+            </button>
           )}
         </div>
       )}
 
-      {/* 操作按钮 */}
-      <div className="actions">
-        <div className="reveal-actions">
-          {/* 揭示下一层按钮 */}
+      {/* Level 2: 深度分析 */}
+      {revealLevel >= 2 && analysis && (
+        <div className="analysis-section level-2">
+          <div className="section-header">
+            <span className="level-badge">Level 2</span>
+            <h4>📖 深度分析</h4>
+          </div>
+          <div className="section-content analysis">
+            {analysis.analysis.split('\n').map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+          </div>
+          {revealLevel === 2 && (
+            <button
+              className="btn-reveal btn-tertiary"
+              onClick={revealNext}
+            >
+              🈯 查看中文翻译
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Level 3: 中文翻译 */}
+      {revealLevel >= 3 && analysis && (
+        <div className="analysis-section level-3">
+          <div className="section-header">
+            <span className="level-badge">Level 3</span>
+            <h4>🈯 中文翻译</h4>
+          </div>
+          <div className="section-content translation">
+            {analysis.zh}
+          </div>
           <button
-            className="btn-primary"
-            onClick={revealNext}
-            disabled={isMaxLevel || loading}
+            className="btn-reset"
+            onClick={reset}
           >
-            {level === 1 && '💡 查看提示'}
-            {level === 2 && '📖 深度分析'}
-            {level === 3 && '✅ 已全部展开'}
+            🔄 重新思考
           </button>
-
-          {/* 重新思考按钮 */}
-          {level > 1 && (
-            <button
-              className="btn-secondary"
-              onClick={resetLevel}
-              disabled={loading}
-            >
-              🔄 重新思考
-            </button>
-          )}
         </div>
-
-        {/* 导航按钮 */}
-        <div className="nav-actions">
-          {onPrevious && (
-            <button
-              className="btn-nav"
-              onClick={onPrevious}
-              disabled={loading}
-            >
-              ← 上一句
-            </button>
-          )}
-          
-          {onNext && (
-            <button
-              className="btn-nav"
-              onClick={onNext}
-              disabled={loading}
-            >
-              下一句 →
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 进度指示器 */}
-      <div className="level-indicator">
-        <div className={`level-dot ${level >= 1 ? 'active' : ''}`}>1</div>
-        <div className={`level-dot ${level >= 2 ? 'active' : ''}`}>2</div>
-        <div className={`level-dot ${level >= 3 ? 'active' : ''}`}>3</div>
-      </div>
+      )}
     </div>
   );
 }
