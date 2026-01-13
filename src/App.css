@@ -427,6 +427,33 @@ body {
   color: #6b7280;
 }
 
+.paste-modal-footer .footer-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-select-file {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-select-file:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.btn-select-file:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-start-reading {
   background: #4F46E5;
   color: white;
@@ -485,6 +512,12 @@ body {
     gap: 12px;
   }
 
+  .paste-modal-footer .footer-buttons {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .btn-select-file,
   .btn-start-reading {
     width: 100%;
   }

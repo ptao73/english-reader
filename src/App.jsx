@@ -286,7 +286,7 @@ function App() {
 
             <textarea
               className="paste-textarea"
-              placeholder={'在此粘贴英文文章内容...\n\n或点击上方【导入文件】按钮选择文件'}
+              placeholder={'在此粘贴英文文章内容...\n\n或点击下方【选择文件】按钮'}
               value={pasteText}
               onChange={e => setPasteText(e.target.value)}
               disabled={importing}
@@ -297,13 +297,22 @@ function App() {
               <span className="hint">
                 {pasteText.trim() ? `${pasteText.split(/\s+/).filter(w => w).length} 个单词` : '支持粘贴或选择 .txt/.docx/.pdf 文件'}
               </span>
-              <button
-                className="btn-start-reading"
-                onClick={handlePasteImport}
-                disabled={importing || !pasteText.trim()}
-              >
-                {importing ? '导入中...' : '🚀 开始阅读'}
-              </button>
+              <div className="footer-buttons">
+                <button
+                  className="btn-select-file"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importing}
+                >
+                  📁 选择文件
+                </button>
+                <button
+                  className="btn-start-reading"
+                  onClick={handlePasteImport}
+                  disabled={importing || !pasteText.trim()}
+                >
+                  {importing ? '导入中...' : '🚀 开始阅读'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
