@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { getSentenceAnalysisStream } from '../utils/ai.js';
 import { tts } from '../utils/tts.js';
+import { tokenizeSentence } from '../utils/textParser.js';
 import './SentenceCard.css';
 
 /**
@@ -142,21 +143,34 @@ export default function SentenceCard({
   }
 
   /**
-   * 处理单词点击 (收藏功能)
+   * 使用 useMemo 缓存分词结果
+   * 设计意图: 避免在流式输出时频繁重新分词，提升性能
    */
-  function handleWordClick(event) {
-    const word = event.target.textContent.trim();
-    const cleanWord = word.replace(/[.,!?;:'"]/g, '');
+  const tokens = useMemo(() => {
+    return tokenizeSentence(sentence.text);
+  }, [sentence.text]);
 
-    if (cleanWord.length > 1 && onSaveWord) {
-      onSaveWord(cleanWord, sentence.text);
+  /**
+   * 处理单词点击 (收藏功能)
+   * 使用 useCallback 避免不必要的重渲染
+   *
+   * 设计意图 (Why):
+   * - 直接从 data-word 属性获取纯单词，无需二次清理
+   * - 使用 useCallback 确保子组件不会因函数引用变化而重渲染
+   */
+  const handleWordClick = useCallback((event) => {
+    const word = event.currentTarget.dataset.word;
 
-      event.target.style.backgroundColor = '#fef3c7';
+    if (word && word.length > 1 && onSaveWord) {
+      onSaveWord(word, sentence.text);
+
+      // 视觉反馈
+      event.currentTarget.classList.add('word-clicked');
       setTimeout(() => {
-        event.target.style.backgroundColor = '';
+        event.currentTarget.classList.remove('word-clicked');
       }, 500);
     }
-  }
+  }, [onSaveWord, sentence.text]);
 
   /**
    * 重新思考
@@ -170,18 +184,41 @@ export default function SentenceCard({
 
   return (
     <div className={`sentence-card ${isSpeaking ? 'speaking' : ''}`}>
-      {/* 句子文本区域 */}
+      {/* 句子文本区域 - 使用智能分词渲染 */}
       <div className="sentence-text">
-        {sentence.text.split(' ').map((word, index) => (
-          <span
-            key={index}
-            className="word"
-            onClick={handleWordClick}
-            title="点击收藏单词"
-          >
-            {word}{' '}
-          </span>
-        ))}
+        {tokens.map((token, index) => {
+          if (token.type === 'word') {
+            // 单词: 可点击，带 hover 效果
+            return (
+              <span
+                key={index}
+                className="word clickable"
+                data-word={token.text}
+                onClick={handleWordClick}
+                title="点击收藏单词"
+              >
+                {token.text}
+              </span>
+            );
+          } else if (token.type === 'punctuation') {
+            // 标点符号: 不可点击，紧贴前一个单词
+            return (
+              <span key={index} className="punctuation">
+                {token.text}
+              </span>
+            );
+          } else if (token.type === 'number') {
+            // 数字/金额: 不可点击，保持原样显示
+            return (
+              <span key={index} className="number">
+                {token.text}
+              </span>
+            );
+          } else {
+            // 空格
+            return <span key={index}>{token.text}</span>;
+          }
+        })}
       </div>
 
       {/* 操作按钮 */}

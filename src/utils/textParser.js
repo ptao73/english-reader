@@ -253,6 +253,62 @@ export function estimateReadingTime(text) {
 }
 
 /**
+ * 智能分词 - 将句子切分为单词和标点的 token 数组
+ *
+ * 设计意图 (Why):
+ * - 前端取词功能需要精确区分"可点击的单词"和"不可点击的标点"
+ * - 简单的 split(' ') 会将标点粘连在单词上，导致查词失败
+ * - 需要保护缩写词 (don't, I'm) 和连字符词 (state-of-the-art)
+ *
+ * @param {string} sentence - 输入句子
+ * @returns {Array<{text: string, type: 'word'|'punctuation'|'number'|'space'}>} - token 数组
+ */
+export function tokenizeSentence(sentence) {
+  if (!sentence || typeof sentence !== 'string') {
+    return [];
+  }
+
+  const tokens = [];
+
+  // 正则模式说明 (按优先级排序):
+  // 1. 缩写词: [A-Za-z]+('[A-Za-z]+)+ (如 don't, I'm, they've)
+  // 2. 连字符词: [A-Za-z]+(-[A-Za-z]+)+ (如 state-of-the-art)
+  // 3. 普通单词: [A-Za-z]+
+  // 4. 数字 (可能带小数/货币): [$€£¥]?\d+(?:\.\d+)?%?
+  // 5. 标点符号: [.,!?;:'"()\[\]{}—–…""\u201C\u201D\u2018\u2019$€£¥]+
+  // 6. 空格: \s+
+
+  const tokenRegex = /([A-Za-z]+(?:'[A-Za-z]+)+)|([A-Za-z]+(?:-[A-Za-z]+)+)|([A-Za-z]+)|([$€£¥]?\d+(?:\.\d+)?%?)|([.,!?;:'"()\[\]{}—–…""''$€£¥]+)|(\s+)/g;
+
+  let match;
+  while ((match = tokenRegex.exec(sentence)) !== null) {
+    const [fullMatch, contraction, hyphenated, word, number, punctuation, space] = match;
+
+    if (contraction) {
+      // 缩写词 (don't, I'm) - 视为单词
+      tokens.push({ text: contraction, type: 'word' });
+    } else if (hyphenated) {
+      // 连字符词 (state-of-the-art) - 视为单词
+      tokens.push({ text: hyphenated, type: 'word' });
+    } else if (word) {
+      // 普通单词
+      tokens.push({ text: word, type: 'word' });
+    } else if (number) {
+      // 数字/金额 - 不可点击，作为独立元素显示
+      tokens.push({ text: number, type: 'number' });
+    } else if (punctuation) {
+      // 标点符号
+      tokens.push({ text: punctuation, type: 'punctuation' });
+    } else if (space) {
+      // 空格
+      tokens.push({ text: space, type: 'space' });
+    }
+  }
+
+  return tokens;
+}
+
+/**
  * 提取关键词(简单版本)
  * 
  * @param {string} text - 文本
