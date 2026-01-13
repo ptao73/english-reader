@@ -286,7 +286,7 @@ function App() {
 
             <textarea
               className="paste-textarea"
-              placeholder="在此粘贴英文文章内容...&#10;&#10;或点击上方"导入文件"按钮选择文件"
+              placeholder={'在此粘贴英文文章内容...\n\n或点击上方【导入文件】按钮选择文件'}
               value={pasteText}
               onChange={e => setPasteText(e.target.value)}
               disabled={importing}
