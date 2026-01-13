@@ -1,0 +1,581 @@
+/* 词汇页面 */
+.vocabulary-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* 工具栏 */
+.vocab-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.vocab-toolbar .btn-back {
+  background: none;
+  border: none;
+  color: #4F46E5;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.vocab-toolbar .btn-back:hover {
+  background: #f3f4f6;
+}
+
+.vocab-toolbar h1 {
+  font-size: 24px;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* 同步区域 */
+.sync-section {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-sync {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-sync:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-sync.syncing {
+  background: #6b7280;
+}
+
+.btn-sync.disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btn-sync:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.sync-info {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 统计信息 */
+.vocab-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  flex: 1;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item .stat-value {
+  display: block;
+  font-size: 32px;
+  font-weight: 700;
+  color: #4F46E5;
+}
+
+.stat-item.success .stat-value {
+  color: #10B981;
+}
+
+.stat-item.warning .stat-value {
+  color: #F59E0B;
+}
+
+.stat-item .stat-label {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* 过滤器 */
+.vocab-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.filter-select,
+.sort-select {
+  padding: 10px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+/* 加载状态 */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #4F46E5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-state h2 {
+  font-size: 20px;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* 词汇网格 */
+.vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* 词汇卡片 */
+.vocab-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid #4F46E5;
+}
+
+.vocab-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.vocab-card.mastered {
+  border-left-color: #10B981;
+  background: #f0fdf4;
+}
+
+.vocab-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.vocab-card-header h3 {
+  font-size: 20px;
+  color: #1f2937;
+  margin: 0;
+}
+
+.btn-speak-mini {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.btn-speak-mini:hover {
+  opacity: 1;
+}
+
+.vocab-phonetic {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.vocab-meaning {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mastered-badge {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #10B981;
+  font-weight: 500;
+}
+
+/* 单词详情弹窗 */
+.word-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+
+.word-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.word-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.word-title h2 {
+  margin: 0;
+  font-size: 28px;
+  color: #1f2937;
+}
+
+.btn-speak {
+  background: #eff6ff;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-speak:hover {
+  background: #dbeafe;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.btn-close:hover {
+  color: #374151;
+}
+
+.word-phonetic {
+  padding: 0 20px;
+  font-size: 16px;
+  color: #6b7280;
+  margin-top: -8px;
+}
+
+.word-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.word-section h4 {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 释义列表 */
+.meanings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.meaning-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.meaning-item .pos {
+  font-size: 12px;
+  color: #4F46E5;
+  font-weight: 600;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.meaning-item .def {
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.meaning-item .def-en {
+  font-size: 13px;
+  color: #6b7280;
+  font-style: italic;
+  width: 100%;
+}
+
+/* 词源 */
+.etymology {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.etym-part {
+  font-size: 14px;
+  color: #374151;
+  background: #f3f4f6;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.etym-origin {
+  font-size: 14px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* 例句 */
+.examples-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.examples-list li {
+  font-size: 14px;
+  color: #374151;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.examples-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* 搭配和同义词 */
+.collocations,
+.synonyms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.collocation-tag,
+.synonym-tag {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.synonym-tag {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* 语境 */
+.context-section {
+  background: #fffbeb;
+}
+
+.context-text {
+  font-size: 14px;
+  color: #374151;
+  font-style: italic;
+  line-height: 1.6;
+  margin: 0 0 8px 0;
+}
+
+.context-meaning {
+  font-size: 14px;
+  color: #92400e;
+  margin: 0 0 8px 0;
+}
+
+.context-source {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* 操作按钮 */
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-mastered {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #10B981;
+  background: white;
+  color: #10B981;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-mastered:hover,
+.btn-mastered.active {
+  background: #10B981;
+  color: white;
+}
+
+.btn-delete-word {
+  padding: 12px 20px;
+  background: white;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-delete-word:hover {
+  background: #fef2f2;
+}
+
+/* 元信息 */
+.word-meta {
+  padding: 12px 20px;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .vocab-stats {
+    flex-direction: column;
+  }
+
+  .vocab-filters {
+    flex-direction: column;
+  }
+
+  .search-input {
+    min-width: 100%;
+  }
+
+  .vocab-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .word-modal {
+    max-height: 95vh;
+    border-radius: 12px 12px 0 0;
+    margin-top: auto;
+  }
+
+  .vocab-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sync-section {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}

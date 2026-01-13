@@ -42,6 +42,45 @@ const SENTENCE_ANALYSIS_PROMPT = (sentence) => `
 `;
 
 /**
+ * 核心Prompt: 单词分析
+ */
+const WORD_ANALYSIS_PROMPT = (word, context) => `
+请分析这个英文单词，严格按照JSON格式输出:
+
+单词: "${word}"
+${context ? `出现语境: "${context}"` : ''}
+
+要求:
+1. phonetic: 音标 (美式 IPA)
+2. meanings: 释义数组，每个包含 { pos: 词性, def: 中文释义, defEn: 英文释义 }
+3. etymology: 词源对象 { root: 词根, prefix: 前缀, suffix: 后缀, origin: 来源语言 }
+4. examples: 例句数组 (2-3个真实例句)
+5. collocations: 常见搭配数组 (3-5个)
+6. synonyms: 同义词数组 (2-3个)
+7. contextMeaning: 在给定语境中的具体含义 (如有语境)
+
+输出JSON格式:
+{
+  "phonetic": "/wɜːrd/",
+  "meanings": [
+    { "pos": "n.", "def": "单词，词", "defEn": "a single unit of language" }
+  ],
+  "etymology": {
+    "root": "word",
+    "prefix": "",
+    "suffix": "",
+    "origin": "Old English"
+  },
+  "examples": ["This word is difficult to pronounce.", "Choose your words carefully."],
+  "collocations": ["key word", "in other words", "word for word"],
+  "synonyms": ["term", "expression"],
+  "contextMeaning": "在此句中指..."
+}
+
+只输出JSON,不要其他内容。
+`;
+
+/**
  * 调用通义千问 API (非流式)
  */
 async function callQwenAPI(prompt) {
@@ -277,31 +316,73 @@ export async function getSentenceAnalysisStream(sentenceId, sentenceText, onChun
 }
 
 /**
- * 获取单词分析(未来实现)
+ * 获取单词分析 (完整实现)
+ * @param {string} word - 单词
+ * @param {string} context - 出现的上下文句子 (可选)
+ * @returns {Promise<Object>} - 完整的单词分析结果
+ * @throws {Error} 当单词为空或 API 调用失败时抛出错误
  */
-export async function getWordAnalysis(word) {
-  // 类似逻辑
-  const cached = await db.aiCache.get(word);
-  if (cached) {
-    return cached.data;
+export async function getWordAnalysis(word, context = '') {
+  // Guard Clause: 参数校验
+  if (!word || typeof word !== 'string') {
+    throw new Error('单词参数不能为空');
   }
 
-  // TODO: 实现单词分析prompt
-  const result = {
-    word,
-    definition: '待实现',
-    etymology: {},
-    examples: []
-  };
+  const cleanWord = word.toLowerCase().trim();
 
-  await db.aiCache.put({
-    key: word,
-    type: 'word',
-    data: result,
-    createdAt: new Date().toISOString()
-  });
+  // Guard Clause: 清理后仍为空则抛出错误
+  if (!cleanWord || cleanWord.length < 1) {
+    throw new Error('无效的单词');
+  }
 
-  return result;
+  const cacheKey = `word:${cleanWord}`;
+
+  try {
+    // L1: 查询本地缓存 (优先使用本地缓存，避免重复 API 调用)
+    const cached = await db.aiCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ 单词缓存命中:', cleanWord);
+      return cached.data;
+    }
+
+    // L2: 查询GitHub缓存(未来实现)
+    // TODO: 实现GitHub缓存查询
+
+    // L3: 调用AI (缓存未命中时才调用，节省 API 成本)
+    console.log('🔄 调用AI分析单词:', cleanWord);
+    const prompt = WORD_ANALYSIS_PROMPT(word, context);
+    const result = await callQwenAPI(prompt);
+
+    // 包装完整数据，使用默认值防止 undefined
+    const wordData = {
+      word: cleanWord,
+      originalWord: word,
+      phonetic: result.phonetic || '',
+      meanings: result.meanings || [],
+      etymology: result.etymology || {},
+      examples: result.examples || [],
+      collocations: result.collocations || [],
+      synonyms: result.synonyms || [],
+      contextMeaning: result.contextMeaning || '',
+      context: context,
+      cachedAt: new Date().toISOString()
+    };
+
+    // 写入L1缓存 (异步写入，不阻塞返回)
+    await db.aiCache.put({
+      key: cacheKey,
+      type: 'word',
+      data: wordData,
+      createdAt: new Date().toISOString()
+    });
+
+    console.log('✅ 单词已缓存:', cleanWord);
+
+    return wordData;
+  } catch (err) {
+    console.error('单词分析失败:', cleanWord, err);
+    throw new Error(`分析单词 "${cleanWord}" 失败: ${err.message}`);
+  }
 }
 
 /**

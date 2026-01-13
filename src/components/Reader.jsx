@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../db/schema.js';
 import { tts } from '../utils/tts.js';
-import { getSentenceAnalysis } from '../utils/ai.js';
+import { getSentenceAnalysis, getWordAnalysis } from '../utils/ai.js';
 import SentenceCard from './SentenceCard.jsx';
 import './Reader.css';
 
@@ -26,6 +26,10 @@ export default function Reader({ article, onBack }) {
   const [analysisCache, setAnalysisCache] = useState({});
   const [isPrefetching, setIsPrefetching] = useState(false);
   const prefetchingIdRef = useRef(null);
+
+  // 保存单词状态
+  const [savingWord, setSavingWord] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(null);
 
   // 加载阅读进度
   useEffect(() => {
@@ -130,6 +134,65 @@ export default function Reader({ article, onBack }) {
   }
 
   /**
+   * 保存单词到词汇表
+   * @param {string} word - 单词
+   * @param {string} context - 上下文句子
+   */
+  async function saveWord(word, context) {
+    const cleanWord = word.toLowerCase().trim();
+
+    // 检查是否已存在
+    const existing = await db.vocabulary
+      .where('word')
+      .equals(cleanWord)
+      .first();
+
+    if (existing) {
+      // 已存在，显示提示
+      setSaveSuccess({ word: cleanWord, isNew: false });
+      setTimeout(() => setSaveSuccess(null), 2000);
+      return;
+    }
+
+    setSavingWord(cleanWord);
+
+    try {
+      // 调用AI获取单词分析
+      const analysis = await getWordAnalysis(word, context);
+
+      // 写入词汇表
+      await db.vocabulary.add({
+        word: cleanWord,
+        originalWord: word,
+        phonetic: analysis.phonetic,
+        meanings: analysis.meanings,
+        etymology: analysis.etymology,
+        examples: analysis.examples,
+        collocations: analysis.collocations,
+        synonyms: analysis.synonyms,
+        context: context,
+        contextMeaning: analysis.contextMeaning,
+        articleId: article.id,
+        articleTitle: article.title,
+        reviewCount: 0,
+        nextReview: new Date().toISOString(),
+        mastered: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      setSaveSuccess({ word: cleanWord, isNew: true });
+      console.log('✅ 单词已保存:', cleanWord);
+    } catch (err) {
+      console.error('保存单词失败:', err);
+      alert('保存失败: ' + err.message);
+    } finally {
+      setSavingWord(null);
+      setTimeout(() => setSaveSuccess(null), 2000);
+    }
+  }
+
+  /**
    * 导航:下一句
    */
   function goToNext() {
@@ -193,6 +256,20 @@ export default function Reader({ article, onBack }) {
 
   return (
     <div className="reader">
+      {/* 保存单词状态提示 */}
+      {savingWord && (
+        <div className="word-save-toast saving">
+          正在分析: {savingWord}...
+        </div>
+      )}
+      {saveSuccess && (
+        <div className={`word-save-toast ${saveSuccess.isNew ? 'success' : 'info'}`}>
+          {saveSuccess.isNew
+            ? `✅ "${saveSuccess.word}" 已添加到词汇表`
+            : `ℹ️ "${saveSuccess.word}" 已在词汇表中`}
+        </div>
+      )}
+
       {/* 顶部工具栏 */}
       <div className="reader-toolbar">
         <button className="btn-back" onClick={onBack}>
@@ -266,6 +343,7 @@ export default function Reader({ article, onBack }) {
             key={currentSentence.sentenceId}
             sentence={currentSentence}
             prefetchedAnalysis={currentCachedAnalysis}
+            onSaveWord={saveWord}
             onNext={!isLast ? goToNext : null}
             onPrevious={!isFirst ? goToPrevious : null}
             hideSpeakButton={true}

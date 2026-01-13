@@ -4,6 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { db } from './db/schema.js';
 import { parseArticle } from './utils/textParser.js';
 import Reader from './components/Reader.jsx';
+import VocabularyList from './components/VocabularyList.jsx';
 import './App.css';
 
 // 配置 PDF.js worker
@@ -259,6 +260,12 @@ function App() {
               文章列表
             </button>
             <button
+              className={view === 'vocabulary' ? 'active' : ''}
+              onClick={() => { setView('vocabulary'); closePasteModal(); }}
+            >
+              📚 词汇表
+            </button>
+            <button
               className={showPasteModal ? 'active' : ''}
               onClick={handleImportClick}
               disabled={importing}
@@ -340,6 +347,10 @@ function App() {
             onRead={startReading}
             onDelete={deleteArticle}
           />
+        )}
+
+        {view === 'vocabulary' && (
+          <VocabularyList onBack={() => setView('list')} />
         )}
       </main>
 
