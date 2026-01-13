@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '../db/schema.js';
 import { tts } from '../utils/tts.js';
+import { getSentenceAnalysis } from '../utils/ai.js';
 import SentenceCard from './SentenceCard.jsx';
 import './Reader.css';
 
@@ -13,11 +14,17 @@ import './Reader.css';
  * 3. 进度保存与恢复
  * 4. 统计信息
  * 5. 朗读控制
+ * 6. 预加载分析缓存
  */
 export default function Reader({ article, onBack }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(null);
+
+  // 预加载缓存状态
+  const [cachedAnalysis, setCachedAnalysis] = useState(null);
+  const [isPrefetching, setIsPrefetching] = useState(false);
+  const prefetchRef = useRef(null);
 
   useEffect(() => {
     loadProgress();
@@ -25,7 +32,50 @@ export default function Reader({ article, onBack }) {
 
   useEffect(() => {
     saveProgress();
+    // 当切换句子时，预加载当前句子的分析
+    prefetchCurrentSentence();
+
+    // 清理函数
+    return () => {
+      if (prefetchRef.current) {
+        prefetchRef.current = null;
+      }
+    };
   }, [currentIndex]);
+
+  /**
+   * 预加载当前句子的分析
+   */
+  async function prefetchCurrentSentence() {
+    const sentence = article.sentences[currentIndex];
+    if (!sentence) return;
+
+    // 重置缓存状态
+    setCachedAnalysis(null);
+    setIsPrefetching(true);
+
+    // 记录当前预加载的句子ID，用于取消过期请求
+    const currentSentenceId = sentence.sentenceId;
+    prefetchRef.current = currentSentenceId;
+
+    try {
+      console.log('🔄 预加载分析:', currentSentenceId);
+      const analysis = await getSentenceAnalysis(sentence.sentenceId, sentence.text);
+
+      // 确保返回的分析是当前句子的（防止快速切换时的竞态条件）
+      if (prefetchRef.current === currentSentenceId) {
+        setCachedAnalysis(analysis);
+        console.log('✅ 预加载完成:', currentSentenceId);
+      }
+    } catch (err) {
+      console.error('预加载失败:', err);
+      // 预加载失败不影响用户操作，用户点击时会重新请求
+    } finally {
+      if (prefetchRef.current === currentSentenceId) {
+        setIsPrefetching(false);
+      }
+    }
+  }
 
   /**
    * 加载阅读进度
@@ -34,7 +84,6 @@ export default function Reader({ article, onBack }) {
     try {
       const saved = await db.progress.get(article.id);
       if (saved) {
-        // 找到对应句子的索引
         const index = article.sentences.findIndex(
           s => s.sentenceId === saved.currentSentenceId
         );
@@ -176,6 +225,12 @@ export default function Reader({ article, onBack }) {
               <span>进度: {progress.percentage}%</span>
             </>
           )}
+          {isPrefetching && (
+            <>
+              <span>•</span>
+              <span className="prefetch-status">🔄 预加载中...</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -190,7 +245,9 @@ export default function Reader({ article, onBack }) {
       {/* 句子卡片 */}
       <div className="reader-content">
         <SentenceCard
+          key={currentSentence.sentenceId}
           sentence={currentSentence}
+          prefetchedAnalysis={cachedAnalysis}
           onNext={!isLast ? goToNext : null}
           onPrevious={!isFirst ? goToPrevious : null}
           hideSpeakButton={true}
@@ -215,7 +272,7 @@ function SentenceList({ sentences, currentIndex, onSelectSentence }) {
 
   return (
     <div className="sentence-list">
-      <button 
+      <button
         className="toggle-list"
         onClick={() => setIsExpanded(!isExpanded)}
       >

@@ -5,24 +5,30 @@ import './SentenceCard.css';
 
 /**
  * 句子卡片组件 - 优化版
- * 
+ *
  * 核心功能:
  * - 三层渐进式揭示 (反直觉学习)
+ * - ⭐ 预加载缓存支持
  * - ⭐ Stream 流式输出
  * - ⭐ 朗读高亮显示
  * - ⭐ 单词点击收藏
  */
-export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = false }) {
+export default function SentenceCard({
+  sentence,
+  prefetchedAnalysis,
+  onSaveWord,
+  hideSpeakButton = false
+}) {
   const [revealLevel, setRevealLevel] = useState(0);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ⭐ 新增: 流式输出状态
+  // 流式输出状态
   const [streamText, setStreamText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
 
-  // ⭐ 新增: 朗读状态
+  // 朗读状态
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   /**
@@ -38,11 +44,29 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
   }, [sentence.sentenceId]);
 
   /**
-   * ⭐ 获取分析 (支持流式输出)
+   * 当预加载分析到达时，自动使用
+   */
+  useEffect(() => {
+    if (prefetchedAnalysis && !analysis) {
+      setAnalysis(prefetchedAnalysis);
+      console.log('✅ 使用预加载的分析');
+    }
+  }, [prefetchedAnalysis]);
+
+  /**
+   * 获取分析 (支持流式输出)
    */
   async function fetchAnalysis() {
+    // 如果已有分析（包括预加载的），直接返回
     if (analysis) return;
 
+    // 如果预加载已完成，直接使用
+    if (prefetchedAnalysis) {
+      setAnalysis(prefetchedAnalysis);
+      return;
+    }
+
+    // 否则发起请求
     setLoading(true);
     setError(null);
     setIsStreaming(true);
@@ -52,7 +76,6 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
       const result = await getSentenceAnalysisStream(
         sentence.sentenceId,
         sentence.text,
-        // ⭐ 流式回调
         (chunk, fullText) => {
           setStreamText(fullText);
         }
@@ -74,17 +97,25 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
    */
   async function revealNext() {
     if (revealLevel === 0) {
-      // 第一次点击,加载分析
-      await fetchAnalysis();
+      // 第一次点击
+      if (analysis || prefetchedAnalysis) {
+        // 已有分析，直接使用
+        if (!analysis && prefetchedAnalysis) {
+          setAnalysis(prefetchedAnalysis);
+        }
+      } else {
+        // 没有预加载，发起请求
+        await fetchAnalysis();
+      }
     }
-    
+
     if (revealLevel < 3) {
       setRevealLevel(prev => prev + 1);
     }
   }
 
   /**
-   * ⭐ 朗读句子 (带高亮效果)
+   * 朗读句子
    */
   async function speakSentence() {
     if (isSpeaking) {
@@ -96,12 +127,8 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
     try {
       await tts.speak(sentence.text, {
         rate: 0.85,
-        onStart: () => {
-          setIsSpeaking(true);
-        },
-        onEnd: () => {
-          setIsSpeaking(false);
-        },
+        onStart: () => setIsSpeaking(true),
+        onEnd: () => setIsSpeaking(false),
         onError: (err) => {
           console.error('朗读失败:', err);
           setIsSpeaking(false);
@@ -115,18 +142,15 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
   }
 
   /**
-   * ⭐ 处理单词点击 (收藏功能)
+   * 处理单词点击 (收藏功能)
    */
   function handleWordClick(event) {
     const word = event.target.textContent.trim();
-    
-    // 过滤标点符号
     const cleanWord = word.replace(/[.,!?;:'"]/g, '');
-    
+
     if (cleanWord.length > 1 && onSaveWord) {
       onSaveWord(cleanWord, sentence.text);
-      
-      // 视觉反馈
+
       event.target.style.backgroundColor = '#fef3c7';
       setTimeout(() => {
         event.target.style.backgroundColor = '';
@@ -141,9 +165,12 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
     setRevealLevel(0);
   }
 
+  // 判断分析是否已就绪（预加载或本地缓存）
+  const analysisReady = analysis || prefetchedAnalysis;
+
   return (
     <div className={`sentence-card ${isSpeaking ? 'speaking' : ''}`}>
-      {/* 句子文本区域 - ⭐ 支持单词点击 */}
+      {/* 句子文本区域 */}
       <div className="sentence-text">
         {sentence.text.split(' ').map((word, index) => (
           <span
@@ -171,11 +198,11 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
 
         {revealLevel === 0 && (
           <button
-            className="btn-reveal btn-primary"
+            className={`btn-reveal btn-primary ${analysisReady ? 'ready' : ''}`}
             onClick={revealNext}
             disabled={loading}
           >
-            {loading ? '⏳ 分析中...' : '💡 查看提示'}
+            {loading ? '⏳ 分析中...' : analysisReady ? '💡 查看提示' : '💡 查看提示'}
           </button>
         )}
       </div>
@@ -188,7 +215,7 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
         </div>
       )}
 
-      {/* ⭐ 流式输出预览 (调试用) */}
+      {/* 流式输出预览 */}
       {isStreaming && (
         <div className="stream-preview">
           <div className="stream-label">正在生成...</div>
@@ -197,14 +224,14 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
       )}
 
       {/* Level 1: 提示 */}
-      {revealLevel >= 1 && analysis && (
+      {revealLevel >= 1 && (analysis || prefetchedAnalysis) && (
         <div className="analysis-section level-1">
           <div className="section-header">
             <span className="level-badge">Level 1</span>
             <h4>💡 提示</h4>
           </div>
           <div className="section-content hint">
-            {analysis.hint}
+            {(analysis || prefetchedAnalysis).hint}
           </div>
           {revealLevel === 1 && (
             <button
@@ -218,14 +245,14 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
       )}
 
       {/* Level 2: 深度分析 */}
-      {revealLevel >= 2 && analysis && (
+      {revealLevel >= 2 && (analysis || prefetchedAnalysis) && (
         <div className="analysis-section level-2">
           <div className="section-header">
             <span className="level-badge">Level 2</span>
             <h4>📖 深度分析</h4>
           </div>
           <div className="section-content analysis">
-            {analysis.analysis.split('\n').map((line, i) => (
+            {(analysis || prefetchedAnalysis).analysis.split('\n').map((line, i) => (
               <p key={i}>{line}</p>
             ))}
           </div>
@@ -241,14 +268,14 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
       )}
 
       {/* Level 3: 中文翻译 */}
-      {revealLevel >= 3 && analysis && (
+      {revealLevel >= 3 && (analysis || prefetchedAnalysis) && (
         <div className="analysis-section level-3">
           <div className="section-header">
             <span className="level-badge">Level 3</span>
             <h4>🈯 中文翻译</h4>
           </div>
           <div className="section-content translation">
-            {analysis.zh}
+            {(analysis || prefetchedAnalysis).zh}
           </div>
           <button
             className="btn-reset"
