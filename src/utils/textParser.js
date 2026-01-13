@@ -27,6 +27,16 @@ export function splitIntoSentences(text) {
   const PLACEHOLDER = '\u0000';
   let processed = text;
 
+  // 0. 预处理: 清理文本格式问题
+  // 移除标点符号前的多余空格 (如 "word ." → "word.")
+  processed = processed.replace(/\s+([.!?,;:])/g, '$1');
+  // 移除装饰性符号 (中点·、项目符号•、星号分隔*** 等)
+  processed = processed.replace(/[·•◦‣⁃]/g, ' ');
+  processed = processed.replace(/\*{2,}/g, ' ');
+  processed = processed.replace(/—{2,}/g, '—');
+  // 规范化多个空格为单个空格
+  processed = processed.replace(/\s+/g, ' ');
+
   // 1. 保护省略号 (... 或 …)
   processed = processed.replace(/\.{3}/g, `${PLACEHOLDER}ELLIPSIS${PLACEHOLDER}`);
   processed = processed.replace(/…/g, `${PLACEHOLDER}ELLIPSIS${PLACEHOLDER}`);
@@ -95,7 +105,16 @@ export function splitIntoSentences(text) {
     // 恢复所有其他标记为点号
     restored = restored.replace(new RegExp(`${PLACEHOLDER}[A-Z]+${PLACEHOLDER}`, 'g'), '.');
     return restored.trim();
-  }).filter(s => s.length > 0);
+  }).filter(s => {
+    // 过滤无效句子:
+    // 1. 空字符串
+    if (s.length === 0) return false;
+    // 2. 只包含标点符号或特殊字符 (无实际文字内容)
+    if (!/[a-zA-Z]/.test(s)) return false;
+    // 3. 单个字符或只有标点
+    if (s.replace(/[^a-zA-Z]/g, '').length < 2) return false;
+    return true;
+  });
 
   // 11. 合并过短的句子片段（少于3个单词且不是完整句子）
   const merged = [];
