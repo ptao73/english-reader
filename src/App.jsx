@@ -125,8 +125,9 @@ function App() {
             <button
               className={view === 'import' ? 'active' : ''}
               onClick={() => setView('import')}
+              title="导入新文章"
             >
-              导入文章
+              +
             </button>
           </nav>
         </div>
