@@ -1,22 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
 import { db } from './db/schema.js';
-import ArticleImport from './components/ArticleImport.jsx';
+import { parseArticle } from './utils/textParser.js';
 import Reader from './components/Reader.jsx';
 import './App.css';
 
+// 配置 PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
 /**
  * 主应用组件
- * 
+ *
  * 状态管理:
  * - 文章列表
  * - 当前文章
- * - 视图切换(导入/阅读/列表)
+ * - 视图切换(列表/阅读)
  */
 function App() {
-  const [view, setView] = useState('import'); // 'import' | 'reading' | 'list'
+  const [view, setView] = useState('list'); // 'reading' | 'list'
   const [articles, setArticles] = useState([]);
   const [currentArticle, setCurrentArticle] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
 
   // 启动时加载文章列表
   useEffect(() => {
@@ -33,13 +41,8 @@ function App() {
         .orderBy('updatedAt')
         .reverse()
         .toArray();
-      
-      setArticles(allArticles);
 
-      // 如果有文章,默认显示列表;否则显示导入界面
-      if (allArticles.length > 0) {
-        setView('list');
-      }
+      setArticles(allArticles);
     } catch (err) {
       console.error('加载文章失败:', err);
     } finally {
@@ -48,12 +51,89 @@ function App() {
   }
 
   /**
-   * 处理文章导入完成
+   * 处理文件上传并自动开始阅读
    */
-  function handleArticleImported(article) {
-    setCurrentArticle(article);
-    setArticles(prev => [article, ...prev]);
-    setView('reading');
+  async function handleFileUpload(file) {
+    if (!file) return;
+
+    setError(null);
+    setImporting(true);
+
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (!['txt', 'doc', 'docx', 'pdf'].includes(ext)) {
+        setError('支持的文件格式: .txt, .docx, .pdf');
+        setImporting(false);
+        return;
+      }
+
+      let text = '';
+
+      if (ext === 'txt') {
+        text = await file.text();
+      } else if (ext === 'docx') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = result.value;
+
+        if (!text.trim()) {
+          setError('DOCX文件内容为空或无法解析');
+          setImporting(false);
+          return;
+        }
+      } else if (ext === 'pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += pageText + '\n';
+        }
+
+        text = fullText.trim();
+
+        if (!text) {
+          setError('PDF文件内容为空或无法解析（可能是扫描版PDF）');
+          setImporting(false);
+          return;
+        }
+      } else if (ext === 'doc') {
+        setError('旧版.doc格式暂不支持，请用Word打开后另存为.docx格式');
+        setImporting(false);
+        return;
+      }
+
+      // 使用文件名作为标题
+      const title = file.name.replace(/\.(txt|doc|docx|pdf)$/i, '');
+
+      // 解析文章并保存
+      const article = parseArticle(title.trim(), text.trim());
+      await db.articles.add(article);
+      await db.progress.put({
+        docId: article.id,
+        currentSentenceId: article.sentences[0].sentenceId,
+        percentage: 0,
+        lastReadAt: new Date().toISOString()
+      });
+
+      // 更新列表并自动开始阅读
+      setArticles(prev => [article, ...prev]);
+      setCurrentArticle(article);
+      setView('reading');
+    } catch (err) {
+      console.error('导入失败:', err);
+      setError('导入失败: ' + err.message);
+    } finally {
+      setImporting(false);
+      // 重置文件输入
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   }
 
   /**
@@ -79,17 +159,12 @@ function App() {
     if (!confirm('确定要删除这篇文章吗?')) return;
 
     try {
-      // 删除文章
       await db.articles.delete(articleId);
-      
-      // 删除相关数据
       await db.progress.delete(articleId);
       await db.sentences.where('docId').equals(articleId).delete();
-      
-      // 更新列表
+
       setArticles(prev => prev.filter(a => a.id !== articleId));
-      
-      // 如果当前正在阅读这篇文章,返回列表
+
       if (currentArticle?.id === articleId) {
         backToList();
       }
@@ -110,6 +185,15 @@ function App() {
 
   return (
     <div className="app">
+      {/* 隐藏的文件输入 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt,.doc,.docx,.pdf"
+        onChange={e => handleFileUpload(e.target.files[0])}
+        style={{ display: 'none' }}
+      />
+
       {/* 顶部导航栏 */}
       <header className="app-header">
         <div className="header-content">
@@ -118,20 +202,29 @@ function App() {
             <button
               className={view === 'list' ? 'active' : ''}
               onClick={() => setView('list')}
-              disabled={articles.length === 0}
             >
               文章列表
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+            >
+              {importing ? '导入中...' : '导入文件'}
             </button>
           </nav>
         </div>
       </header>
 
+      {/* 错误提示 */}
+      {error && (
+        <div className="app-error">
+          ❌ {error}
+          <button onClick={() => setError(null)}>✕</button>
+        </div>
+      )}
+
       {/* 主内容区 */}
       <main className="app-main">
-        {view === 'import' && (
-          <ArticleImport onImported={handleArticleImported} />
-        )}
-
         {view === 'reading' && currentArticle && (
           <div className="reading-view">
             <Reader article={currentArticle} onBack={backToList} />
@@ -186,7 +279,7 @@ function ArticleList({ articles, onRead, onDelete }) {
       <div className="empty-state">
         <div className="empty-icon">📚</div>
         <h2>还没有文章</h2>
-        <p>导入你的第一篇英文文章开始学习吧!</p>
+        <p>点击右上角"导入文件"开始学习吧!</p>
       </div>
     );
   }
