@@ -140,10 +140,7 @@ function App() {
 
         {view === 'reading' && currentArticle && (
           <div className="reading-view">
-            <button className="btn-back" onClick={backToList}>
-              ← 返回列表
-            </button>
-            <Reader article={currentArticle} />
+            <Reader article={currentArticle} onBack={backToList} />
           </div>
         )}
 

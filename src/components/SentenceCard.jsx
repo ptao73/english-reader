@@ -12,7 +12,7 @@ import './SentenceCard.css';
  * - ⭐ 朗读高亮显示
  * - ⭐ 单词点击收藏
  */
-export default function SentenceCard({ sentence, onSaveWord }) {
+export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = false }) {
   const [revealLevel, setRevealLevel] = useState(0);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -159,13 +159,15 @@ export default function SentenceCard({ sentence, onSaveWord }) {
 
       {/* 操作按钮 */}
       <div className="sentence-actions">
-        <button
-          className={`btn-speak ${isSpeaking ? 'active' : ''}`}
-          onClick={speakSentence}
-          title={isSpeaking ? '停止朗读' : '朗读句子'}
-        >
-          {isSpeaking ? '⏹' : '🔊'}
-        </button>
+        {!hideSpeakButton && (
+          <button
+            className={`btn-speak ${isSpeaking ? 'active' : ''}`}
+            onClick={speakSentence}
+            title={isSpeaking ? '停止朗读' : '朗读句子'}
+          >
+            {isSpeaking ? '⏹' : '🔊'}
+          </button>
+        )}
 
         {revealLevel === 0 && (
           <button

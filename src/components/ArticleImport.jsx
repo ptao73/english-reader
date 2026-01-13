@@ -233,10 +233,10 @@ export default function ArticleImport({ onImported }) {
           </div>
         )}
 
-        {/* 操作按钮区 - 文件上传和导入放在一起 */}
+        {/* 操作按钮区 */}
         <div className="action-buttons">
-          <label htmlFor="file-upload" className="btn-file-upload">
-            📁 选择文件
+          <label htmlFor="file-upload" className="btn-import-file">
+            📁 导入文件
             <input
               id="file-upload"
               type="file"
@@ -246,13 +246,15 @@ export default function ArticleImport({ onImported }) {
               style={{ display: 'none' }}
             />
           </label>
-          <button
-            className="btn-import"
-            onClick={handleImport}
-            disabled={importing || !title.trim() || !content.trim()}
-          >
-            {importing ? '导入中...' : '🚀 开始阅读'}
-          </button>
+          {content && (
+            <button
+              className="btn-import"
+              onClick={handleImport}
+              disabled={importing || !title.trim() || !content.trim()}
+            >
+              {importing ? '导入中...' : '🚀 开始阅读'}
+            </button>
+          )}
         </div>
       </div>
     </div>

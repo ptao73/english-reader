@@ -5,6 +5,76 @@
   padding: 20px;
 }
 
+/* 顶部工具栏 */
+.reader-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.reader-toolbar .btn-back {
+  background: none;
+  border: none;
+  color: #4F46E5;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.reader-toolbar .btn-back:hover {
+  background: #f3f4f6;
+}
+
+.toolbar-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-control {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-control:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.btn-control:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-control.btn-speak {
+  background: #4F46E5;
+  color: white;
+}
+
+.btn-control.btn-speak:hover {
+  background: #4338CA;
+}
+
+.btn-control.btn-speak.active {
+  background: #ef4444;
+}
+
 /* 文章头部 */
 .reader-header {
   text-align: center;
@@ -47,34 +117,6 @@
   margin: 32px 0;
 }
 
-/* 快速导航 */
-.quick-nav {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin: 32px 0;
-}
-
-.quick-nav button {
-  background: white;
-  border: 1px solid #d1d5db;
-  color: #374151;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.quick-nav button:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.quick-nav button:disabled {
-  color: #d1d5db;
-  cursor: not-allowed;
-}
 
 /* 句子列表 */
 .sentence-list {

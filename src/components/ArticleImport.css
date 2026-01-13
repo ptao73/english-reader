@@ -99,26 +99,26 @@
   align-items: stretch;
 }
 
-/* 文件上传按钮 */
-.btn-file-upload {
+/* 导入文件按钮 */
+.btn-import-file {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
-  color: #374151;
-  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 32px;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  border: 2px dashed #d1d5db;
-  flex-shrink: 0;
+  border: none;
+  flex: 1;
 }
 
-.btn-file-upload:hover {
-  background: #e5e7eb;
-  border-color: #9ca3af;
+.btn-import-file:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 /* 预览信息 */

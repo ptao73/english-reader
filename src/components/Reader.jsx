@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
 import { db } from '../db/schema.js';
+import { tts } from '../utils/tts.js';
 import SentenceCard from './SentenceCard.jsx';
 import './Reader.css';
 
 /**
  * 阅读器组件
- * 
+ *
  * 功能:
  * 1. 显示文章句子
  * 2. 导航控制(上一句/下一句)
  * 3. 进度保存与恢复
  * 4. 统计信息
+ * 5. 朗读控制
  */
-export default function Reader({ article }) {
+export default function Reader({ article, onBack }) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(null);
 
@@ -98,19 +101,75 @@ export default function Reader({ article }) {
     }
   }
 
+  /**
+   * 朗读当前句子
+   */
+  async function speakCurrentSentence() {
+    const currentSentence = article.sentences[currentIndex];
+    if (!currentSentence) return;
+
+    if (isSpeaking) {
+      tts.stop();
+      setIsSpeaking(false);
+      return;
+    }
+
+    try {
+      await tts.speak(currentSentence.text, {
+        rate: 0.85,
+        onStart: () => setIsSpeaking(true),
+        onEnd: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false)
+      });
+    } catch (err) {
+      console.error('朗读失败:', err);
+      setIsSpeaking(false);
+    }
+  }
+
   const currentSentence = article.sentences[currentIndex];
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === article.sentences.length - 1;
 
   return (
     <div className="reader">
+      {/* 顶部工具栏 */}
+      <div className="reader-toolbar">
+        <button className="btn-back" onClick={onBack}>
+          ← 返回列表
+        </button>
+        <div className="toolbar-controls">
+          <button
+            className="btn-control"
+            onClick={goToPrevious}
+            disabled={isFirst}
+            title="上一句"
+          >
+            ◀
+          </button>
+          <button
+            className={`btn-control btn-speak ${isSpeaking ? 'active' : ''}`}
+            onClick={speakCurrentSentence}
+            title={isSpeaking ? '停止' : '朗读'}
+          >
+            {isSpeaking ? '⏹' : '🔊'}
+          </button>
+          <button
+            className="btn-control"
+            onClick={goToNext}
+            disabled={isLast}
+            title="下一句"
+          >
+            ▶
+          </button>
+        </div>
+      </div>
+
       {/* 文章头部 */}
       <div className="reader-header">
         <h1>{article.title}</h1>
         <div className="meta">
-          <span>共 {article.sentences.length} 句</span>
-          <span>•</span>
-          <span>当前: 第 {currentIndex + 1} 句</span>
+          <span>第 {currentIndex + 1} / {article.sentences.length} 句</span>
           {progress && (
             <>
               <span>•</span>
@@ -122,8 +181,8 @@ export default function Reader({ article }) {
 
       {/* 进度条 */}
       <div className="progress-bar">
-        <div 
-          className="progress-fill" 
+        <div
+          className="progress-fill"
           style={{ width: `${((currentIndex + 1) / article.sentences.length) * 100}%` }}
         />
       </div>
@@ -134,23 +193,8 @@ export default function Reader({ article }) {
           sentence={currentSentence}
           onNext={!isLast ? goToNext : null}
           onPrevious={!isFirst ? goToPrevious : null}
+          hideSpeakButton={true}
         />
-      </div>
-
-      {/* 导航按钮 */}
-      <div className="quick-nav">
-        <button
-          onClick={goToPrevious}
-          disabled={isFirst}
-        >
-          ◀ 上一句
-        </button>
-        <button
-          onClick={goToNext}
-          disabled={isLast}
-        >
-          下一句 ▶
-        </button>
       </div>
 
       {/* 句子列表(可选:折叠/展开) */}
