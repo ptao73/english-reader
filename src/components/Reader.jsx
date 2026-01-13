@@ -140,11 +140,11 @@ export default function Reader({ article, onBack }) {
         </button>
         <div className="toolbar-controls">
           <button
-            className={`btn-control btn-speak ${isSpeaking ? 'active' : ''}`}
+            className="btn-speak-main"
             onClick={speakCurrentSentence}
-            title={isSpeaking ? '停止' : '朗读'}
+            title={isSpeaking ? '停止朗读' : '朗读当前句子'}
           >
-            {isSpeaking ? '停' : '读'}
+            {isSpeaking ? '■ 停止' : '▶ 朗读'}
           </button>
           <button
             className="btn-control"
