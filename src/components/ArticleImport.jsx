@@ -5,8 +5,8 @@ import { db } from '../db/schema.js';
 import { parseArticle } from '../utils/textParser.js';
 import './ArticleImport.css';
 
-// 配置 PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// 配置 PDF.js worker - 使用 unpkg CDN (更好支持新版本)
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 /**
  * 文章导入组件
