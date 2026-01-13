@@ -8,37 +8,110 @@
  */
 
 /**
- * 简单句子切分(基于正则)
- * 
+ * 智能句子切分
+ *
  * 规则:
- * - 以 . ! ? 结尾
- * - 处理常见缩写 (Mr. Mrs. Dr. etc.)
+ * - 以 . ! ? 结尾（考虑引号）
+ * - 保护常见缩写、头衔、学位
+ * - 保护小数、金额、编号
+ * - 处理省略号
  * - 保留段落信息
- * 
+ *
  * @param {string} text - 原始文本
  * @returns {Array} - 句子数组
  */
 export function splitIntoSentences(text) {
-  // 预处理: 保护常见缩写
-  const protectedText = text
-    .replace(/Mr\./g, 'Mr<dot>')
-    .replace(/Mrs\./g, 'Mrs<dot>')
-    .replace(/Dr\./g, 'Dr<dot>')
-    .replace(/Ms\./g, 'Ms<dot>')
-    .replace(/vs\./g, 'vs<dot>')
-    .replace(/etc\./g, 'etc<dot>')
-    .replace(/e\.g\./g, 'e<dot>g<dot>')
-    .replace(/i\.e\./g, 'i<dot>e<dot>');
+  if (!text || !text.trim()) return [];
 
-  // 切分句子
-  const sentences = protectedText
-    .match(/[^.!?]+[.!?]+/g) || [];
+  // 占位符
+  const PLACEHOLDER = '\u0000';
+  let processed = text;
 
-  // 恢复缩写
-  return sentences.map(s => 
-    s.replace(/<dot>/g, '.')
-     .trim()
-  ).filter(s => s.length > 0);
+  // 1. 保护省略号 (... 或 …)
+  processed = processed.replace(/\.{3}/g, `${PLACEHOLDER}ELLIPSIS${PLACEHOLDER}`);
+  processed = processed.replace(/…/g, `${PLACEHOLDER}ELLIPSIS${PLACEHOLDER}`);
+
+  // 2. 保护小数和金额 (如 3.14, $1.5, 0.01)
+  processed = processed.replace(/(\d)\.(\d)/g, `$1${PLACEHOLDER}NUM${PLACEHOLDER}$2`);
+
+  // 3. 保护常见缩写 - 头衔
+  const titles = ['Mr', 'Mrs', 'Ms', 'Dr', 'Prof', 'Rev', 'Gen', 'Gov', 'Sen', 'Rep', 'Capt', 'Lt', 'Col', 'Sgt'];
+  titles.forEach(title => {
+    const regex = new RegExp(`\\b${title}\\.`, 'g');
+    processed = processed.replace(regex, `${title}${PLACEHOLDER}TITLE${PLACEHOLDER}`);
+  });
+
+  // 4. 保护常见缩写 - 后缀
+  const suffixes = ['Jr', 'Sr', 'Ph', 'Inc', 'Ltd', 'Corp', 'Co', 'Bros'];
+  suffixes.forEach(suffix => {
+    const regex = new RegExp(`\\b${suffix}\\.`, 'g');
+    processed = processed.replace(regex, `${suffix}${PLACEHOLDER}SUFFIX${PLACEHOLDER}`);
+  });
+
+  // 5. 保护常见缩写 - 拉丁语/常用
+  processed = processed.replace(/\be\.g\./gi, `e${PLACEHOLDER}EG${PLACEHOLDER}g${PLACEHOLDER}EG${PLACEHOLDER}`);
+  processed = processed.replace(/\bi\.e\./gi, `i${PLACEHOLDER}IE${PLACEHOLDER}e${PLACEHOLDER}IE${PLACEHOLDER}`);
+  processed = processed.replace(/\betc\./gi, `etc${PLACEHOLDER}ETC${PLACEHOLDER}`);
+  processed = processed.replace(/\bvs\./gi, `vs${PLACEHOLDER}VS${PLACEHOLDER}`);
+  processed = processed.replace(/\bv\./gi, `v${PLACEHOLDER}V${PLACEHOLDER}`);
+  processed = processed.replace(/\bNo\./g, `No${PLACEHOLDER}NO${PLACEHOLDER}`);
+  processed = processed.replace(/\bSt\./g, `St${PLACEHOLDER}ST${PLACEHOLDER}`);
+  processed = processed.replace(/\bMt\./g, `Mt${PLACEHOLDER}MT${PLACEHOLDER}`);
+  processed = processed.replace(/\bFt\./g, `Ft${PLACEHOLDER}FT${PLACEHOLDER}`);
+  processed = processed.replace(/\bAve\./g, `Ave${PLACEHOLDER}AVE${PLACEHOLDER}`);
+  processed = processed.replace(/\bBlvd\./g, `Blvd${PLACEHOLDER}BLVD${PLACEHOLDER}`);
+
+  // 6. 保护国家/地区缩写
+  processed = processed.replace(/\bU\.S\.A?\./g, `U${PLACEHOLDER}US${PLACEHOLDER}S${PLACEHOLDER}US${PLACEHOLDER}A${PLACEHOLDER}US${PLACEHOLDER}`);
+  processed = processed.replace(/\bU\.S\./g, `U${PLACEHOLDER}US${PLACEHOLDER}S${PLACEHOLDER}US${PLACEHOLDER}`);
+  processed = processed.replace(/\bU\.K\./g, `U${PLACEHOLDER}UK${PLACEHOLDER}K${PLACEHOLDER}UK${PLACEHOLDER}`);
+  processed = processed.replace(/\bU\.N\./g, `U${PLACEHOLDER}UN${PLACEHOLDER}N${PLACEHOLDER}UN${PLACEHOLDER}`);
+  processed = processed.replace(/\bE\.U\./g, `E${PLACEHOLDER}EU${PLACEHOLDER}U${PLACEHOLDER}EU${PLACEHOLDER}`);
+
+  // 7. 保护学位
+  processed = processed.replace(/\bPh\.D\./g, `Ph${PLACEHOLDER}PHD${PLACEHOLDER}D${PLACEHOLDER}PHD${PLACEHOLDER}`);
+  processed = processed.replace(/\bM\.D\./g, `M${PLACEHOLDER}MD${PLACEHOLDER}D${PLACEHOLDER}MD${PLACEHOLDER}`);
+  processed = processed.replace(/\bB\.A\./g, `B${PLACEHOLDER}BA${PLACEHOLDER}A${PLACEHOLDER}BA${PLACEHOLDER}`);
+  processed = processed.replace(/\bM\.A\./g, `M${PLACEHOLDER}MA${PLACEHOLDER}A${PLACEHOLDER}MA${PLACEHOLDER}`);
+  processed = processed.replace(/\bB\.S\./g, `B${PLACEHOLDER}BS${PLACEHOLDER}S${PLACEHOLDER}BS${PLACEHOLDER}`);
+  processed = processed.replace(/\bM\.S\./g, `M${PLACEHOLDER}MS${PLACEHOLDER}S${PLACEHOLDER}MS${PLACEHOLDER}`);
+
+  // 8. 保护时间 (a.m. / p.m.)
+  processed = processed.replace(/\ba\.m\./gi, `a${PLACEHOLDER}AM${PLACEHOLDER}m${PLACEHOLDER}AM${PLACEHOLDER}`);
+  processed = processed.replace(/\bp\.m\./gi, `p${PLACEHOLDER}PM${PLACEHOLDER}m${PLACEHOLDER}PM${PLACEHOLDER}`);
+
+  // 9. 切分句子 - 改进的正则
+  // 匹配: 非终结符内容 + 终结符(.!?) + 可选的引号/括号
+  const sentenceRegex = /[^.!?]*[.!?]+["'»」』）)]*\s*/g;
+  let sentences = processed.match(sentenceRegex) || [];
+
+  // 10. 恢复所有占位符
+  sentences = sentences.map(s => {
+    let restored = s;
+    // 恢复省略号
+    restored = restored.replace(new RegExp(`${PLACEHOLDER}ELLIPSIS${PLACEHOLDER}`, 'g'), '...');
+    // 恢复小数点
+    restored = restored.replace(new RegExp(`${PLACEHOLDER}NUM${PLACEHOLDER}`, 'g'), '.');
+    // 恢复所有其他标记为点号
+    restored = restored.replace(new RegExp(`${PLACEHOLDER}[A-Z]+${PLACEHOLDER}`, 'g'), '.');
+    return restored.trim();
+  }).filter(s => s.length > 0);
+
+  // 11. 合并过短的句子片段（少于3个单词且不是完整句子）
+  const merged = [];
+  for (let i = 0; i < sentences.length; i++) {
+    const current = sentences[i];
+    const wordCount = current.split(/\s+/).length;
+
+    // 如果当前片段很短且不以终结符结尾，与下一句合并
+    if (wordCount < 3 && i < sentences.length - 1 && !/[.!?]["'»」』）)]*$/.test(current)) {
+      sentences[i + 1] = current + ' ' + sentences[i + 1];
+    } else {
+      merged.push(current);
+    }
+  }
+
+  return merged;
 }
 
 /**
