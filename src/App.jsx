@@ -11,29 +11,25 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLi
 
 /**
  * 主应用组件
- *
- * 状态管理:
- * - 文章列表
- * - 当前文章
- * - 视图切换(列表/阅读)
  */
 function App() {
-  const [view, setView] = useState('list'); // 'reading' | 'list'
+  const [view, setView] = useState('list');
   const [articles, setArticles] = useState([]);
   const [currentArticle, setCurrentArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState(null);
+
+  // 粘贴弹窗状态
+  const [showPasteModal, setShowPasteModal] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+
   const fileInputRef = useRef(null);
 
-  // 启动时加载文章列表
   useEffect(() => {
     loadArticles();
   }, []);
 
-  /**
-   * 加载所有文章
-   */
   async function loadArticles() {
     setLoading(true);
     try {
@@ -41,7 +37,6 @@ function App() {
         .orderBy('updatedAt')
         .reverse()
         .toArray();
-
       setArticles(allArticles);
     } catch (err) {
       console.error('加载文章失败:', err);
@@ -51,7 +46,70 @@ function App() {
   }
 
   /**
-   * 处理文件上传并自动开始阅读
+   * 点击"导入文件"按钮
+   */
+  function handleImportClick() {
+    if (showPasteModal) {
+      // 弹窗已打开，直接打开文件选择器
+      fileInputRef.current?.click();
+    } else {
+      // 弹窗未打开，显示粘贴弹窗
+      setShowPasteModal(true);
+      setPasteText('');
+      setError(null);
+    }
+  }
+
+  /**
+   * 自动生成标题
+   */
+  function generateTitle(text) {
+    const firstLine = text.split('\n')[0].trim();
+    if (firstLine.length >= 5 && firstLine.length <= 100) {
+      return firstLine.substring(0, 50);
+    }
+    return 'Article ' + new Date().toLocaleDateString();
+  }
+
+  /**
+   * 处理粘贴文本导入
+   */
+  async function handlePasteImport() {
+    if (!pasteText.trim()) {
+      setError('请粘贴文章内容');
+      return;
+    }
+
+    setImporting(true);
+    setError(null);
+
+    try {
+      const title = generateTitle(pasteText);
+      const article = parseArticle(title.trim(), pasteText.trim());
+
+      await db.articles.add(article);
+      await db.progress.put({
+        docId: article.id,
+        currentSentenceId: article.sentences[0].sentenceId,
+        percentage: 0,
+        lastReadAt: new Date().toISOString()
+      });
+
+      setArticles(prev => [article, ...prev]);
+      setCurrentArticle(article);
+      setView('reading');
+      setShowPasteModal(false);
+      setPasteText('');
+    } catch (err) {
+      console.error('导入失败:', err);
+      setError('导入失败: ' + err.message);
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  /**
+   * 处理文件上传
    */
   async function handleFileUpload(file) {
     if (!file) return;
@@ -107,11 +165,9 @@ function App() {
         return;
       }
 
-      // 使用文件名作为标题
       const title = file.name.replace(/\.(txt|doc|docx|pdf)$/i, '');
-
-      // 解析文章并保存
       const article = parseArticle(title.trim(), text.trim());
+
       await db.articles.add(article);
       await db.progress.put({
         docId: article.id,
@@ -120,41 +176,32 @@ function App() {
         lastReadAt: new Date().toISOString()
       });
 
-      // 更新列表并自动开始阅读
       setArticles(prev => [article, ...prev]);
       setCurrentArticle(article);
       setView('reading');
+      setShowPasteModal(false);
+      setPasteText('');
     } catch (err) {
       console.error('导入失败:', err);
       setError('导入失败: ' + err.message);
     } finally {
       setImporting(false);
-      // 重置文件输入
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
   }
 
-  /**
-   * 开始阅读某篇文章
-   */
   function startReading(article) {
     setCurrentArticle(article);
     setView('reading');
   }
 
-  /**
-   * 返回列表
-   */
   function backToList() {
     setCurrentArticle(null);
     setView('list');
   }
 
-  /**
-   * 删除文章
-   */
   async function deleteArticle(articleId) {
     if (!confirm('确定要删除这篇文章吗?')) return;
 
@@ -172,6 +219,12 @@ function App() {
       console.error('删除失败:', err);
       alert('删除失败:' + err.message);
     }
+  }
+
+  function closePasteModal() {
+    setShowPasteModal(false);
+    setPasteText('');
+    setError(null);
   }
 
   if (loading) {
@@ -200,13 +253,14 @@ function App() {
           <h1 className="logo">📖 English Reader</h1>
           <nav className="nav">
             <button
-              className={view === 'list' ? 'active' : ''}
-              onClick={() => setView('list')}
+              className={view === 'list' && !showPasteModal ? 'active' : ''}
+              onClick={() => { setView('list'); closePasteModal(); }}
             >
               文章列表
             </button>
             <button
-              onClick={() => fileInputRef.current?.click()}
+              className={showPasteModal ? 'active' : ''}
+              onClick={handleImportClick}
               disabled={importing}
             >
               {importing ? '导入中...' : '导入文件'}
@@ -215,8 +269,48 @@ function App() {
         </div>
       </header>
 
-      {/* 错误提示 */}
-      {error && (
+      {/* 粘贴弹窗 */}
+      {showPasteModal && (
+        <div className="paste-modal-overlay" onClick={closePasteModal}>
+          <div className="paste-modal" onClick={e => e.stopPropagation()}>
+            <div className="paste-modal-header">
+              <h2>📝 粘贴文章</h2>
+              <button className="btn-close" onClick={closePasteModal}>✕</button>
+            </div>
+
+            {error && (
+              <div className="paste-error">
+                ❌ {error}
+              </div>
+            )}
+
+            <textarea
+              className="paste-textarea"
+              placeholder="在此粘贴英文文章内容...&#10;&#10;或点击上方"导入文件"按钮选择文件"
+              value={pasteText}
+              onChange={e => setPasteText(e.target.value)}
+              disabled={importing}
+              rows={12}
+            />
+
+            <div className="paste-modal-footer">
+              <span className="hint">
+                {pasteText.trim() ? `${pasteText.split(/\s+/).filter(w => w).length} 个单词` : '支持粘贴或选择 .txt/.docx/.pdf 文件'}
+              </span>
+              <button
+                className="btn-start-reading"
+                onClick={handlePasteImport}
+                disabled={importing || !pasteText.trim()}
+              >
+                {importing ? '导入中...' : '🚀 开始阅读'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 错误提示（非弹窗状态） */}
+      {error && !showPasteModal && (
         <div className="app-error">
           ❌ {error}
           <button onClick={() => setError(null)}>✕</button>
@@ -242,12 +336,8 @@ function App() {
 
       {/* 底部信息 */}
       <footer className="app-footer">
-        <p>
-          ⚡ Powered by React + IndexedDB + Claude AI
-        </p>
-        <p className="tip">
-          💡 反直觉学习法:先思考,再揭示答案
-        </p>
+        <p>⚡ Powered by React + IndexedDB + Claude AI</p>
+        <p className="tip">💡 反直觉学习法:先思考,再揭示答案</p>
       </footer>
     </div>
   );
