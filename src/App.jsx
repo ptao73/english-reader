@@ -122,13 +122,6 @@ function App() {
             >
               文章列表
             </button>
-            <button
-              className={view === 'import' ? 'active' : ''}
-              onClick={() => setView('import')}
-              title="导入新文章"
-            >
-              +
-            </button>
           </nav>
         </div>
       </header>
