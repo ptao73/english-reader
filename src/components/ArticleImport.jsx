@@ -208,21 +208,6 @@ export default function ArticleImport({ onImported }) {
           </div>
         </div>
 
-        {/* 文件上传 */}
-        <div className="form-group">
-          <label htmlFor="file-upload" className="file-upload-label">
-            📁 或选择文件上传
-          </label>
-          <input
-            id="file-upload"
-            type="file"
-            accept=".txt,.doc,.docx,.pdf"
-            onChange={e => handleFileUpload(e.target.files[0])}
-            disabled={importing}
-            style={{ display: 'none' }}
-          />
-        </div>
-
         {/* 预览信息 */}
         {content && (
           <div className="preview-info">
@@ -248,14 +233,27 @@ export default function ArticleImport({ onImported }) {
           </div>
         )}
 
-        {/* 导入按钮 */}
-        <button
-          className="btn-import"
-          onClick={handleImport}
-          disabled={importing || !title.trim() || !content.trim()}
-        >
-          {importing ? '导入中...' : '🚀 开始阅读'}
-        </button>
+        {/* 操作按钮区 - 文件上传和导入放在一起 */}
+        <div className="action-buttons">
+          <label htmlFor="file-upload" className="btn-file-upload">
+            📁 选择文件
+            <input
+              id="file-upload"
+              type="file"
+              accept=".txt,.doc,.docx,.pdf"
+              onChange={e => handleFileUpload(e.target.files[0])}
+              disabled={importing}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <button
+            className="btn-import"
+            onClick={handleImport}
+            disabled={importing || !title.trim() || !content.trim()}
+          >
+            {importing ? '导入中...' : '🚀 开始阅读'}
+          </button>
+        </div>
       </div>
     </div>
   );

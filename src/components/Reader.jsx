@@ -137,19 +137,19 @@ export default function Reader({ article }) {
         />
       </div>
 
-      {/* 快速导航 */}
+      {/* 导航按钮 */}
       <div className="quick-nav">
-        <button 
-          onClick={() => jumpToSentence(0)}
+        <button
+          onClick={goToPrevious}
           disabled={isFirst}
         >
-          ⏮ 第一句
+          ◀ 上一句
         </button>
-        <button 
-          onClick={() => jumpToSentence(article.sentences.length - 1)}
+        <button
+          onClick={goToNext}
           disabled={isLast}
         >
-          最后一句 ⏭
+          下一句 ▶
         </button>
       </div>
 

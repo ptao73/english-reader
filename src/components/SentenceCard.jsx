@@ -162,8 +162,9 @@ export default function SentenceCard({ sentence, onSaveWord }) {
         <button
           className={`btn-speak ${isSpeaking ? 'active' : ''}`}
           onClick={speakSentence}
+          title={isSpeaking ? '停止朗读' : '朗读句子'}
         >
-          {isSpeaking ? '⏹ 停止' : '🔊 朗读'}
+          {isSpeaking ? '⏹' : '🔊'}
         </button>
 
         {revealLevel === 0 && (

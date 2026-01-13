@@ -23,30 +23,39 @@
   line-height: 1.8;
   color: #1f2937;
   margin: 0;
-  padding-right: 80px; /* 为按钮留空间 */
+  padding-right: 60px; /* 为小按钮留空间 */
 }
 
-/* 发音按钮 */
+/* 发音按钮 - 优化为小巧的图标按钮 */
 .btn-speak {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  background: #4F46E5;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
+  top: 12px;
+  right: 12px;
+  background: rgba(79, 70, 229, 0.1);
+  color: #4F46E5;
+  border: 1px solid rgba(79, 70, 229, 0.3);
+  padding: 6px 10px;
+  border-radius: 16px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  opacity: 0.8;
 }
 
 .btn-speak:hover {
-  background: #4338CA;
-  transform: scale(1.05);
+  background: #4F46E5;
+  color: white;
+  opacity: 1;
+}
+
+.btn-speak.active {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+  opacity: 1;
 }
 
 .btn-speak:active {
@@ -307,17 +316,16 @@ button {
 
   .sentence-text p {
     font-size: 16px;
-    padding-right: 0;
-    padding-bottom: 50px; /* 移动端按钮在下方 */
+    padding-right: 50px;
+    padding-bottom: 0;
   }
 
   .btn-speak {
     position: absolute;
-    top: auto;
-    bottom: 12px;
-    right: 12px;
-    left: 12px;
-    width: auto;
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    font-size: 11px;
   }
 
   .reveal-actions {

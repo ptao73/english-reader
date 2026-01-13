@@ -92,22 +92,33 @@
   font-style: italic;
 }
 
-/* 文件上传标签 */
-.file-upload-label {
-  display: inline-block;
+/* 操作按钮区 */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* 文件上传按钮 */
+.btn-file-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #f3f4f6;
   color: #374151;
-  padding: 12px 24px;
+  padding: 16px 24px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  text-align: center;
+  border: 2px dashed #d1d5db;
+  flex-shrink: 0;
 }
 
-.file-upload-label:hover {
+.btn-file-upload:hover {
   background: #e5e7eb;
+  border-color: #9ca3af;
 }
 
 /* 预览信息 */
@@ -149,6 +160,7 @@
 
 /* 导入按钮 */
 .btn-import {
+  flex: 1;
   background: #4F46E5;
   color: white;
   border: none;
@@ -181,6 +193,15 @@
 
   .stats {
     grid-template-columns: 1fr;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .btn-file-upload {
+    padding: 14px 20px;
+    font-size: 14px;
   }
 
   .btn-import {
