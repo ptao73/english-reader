@@ -235,18 +235,19 @@ export default function ArticleImport({ onImported }) {
 
         {/* 操作按钮区 */}
         <div className="action-buttons">
-          <label htmlFor="file-upload" className="btn-import-file">
-            📁 导入文件
-            <input
-              id="file-upload"
-              type="file"
-              accept=".txt,.doc,.docx,.pdf"
-              onChange={e => handleFileUpload(e.target.files[0])}
-              disabled={importing}
-              style={{ display: 'none' }}
-            />
-          </label>
-          {content && (
+          <input
+            id="file-upload"
+            type="file"
+            accept=".txt,.doc,.docx,.pdf"
+            onChange={e => handleFileUpload(e.target.files[0])}
+            disabled={importing}
+            style={{ display: 'none' }}
+          />
+          {!content ? (
+            <label htmlFor="file-upload" className="btn-import">
+              📚 导入文章
+            </label>
+          ) : (
             <button
               className="btn-import"
               onClick={handleImport}

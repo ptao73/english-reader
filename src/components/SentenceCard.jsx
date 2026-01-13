@@ -165,7 +165,7 @@ export default function SentenceCard({ sentence, onSaveWord, hideSpeakButton = f
             onClick={speakSentence}
             title={isSpeaking ? '停止朗读' : '朗读句子'}
           >
-            {isSpeaking ? '■' : '♪'}
+            {isSpeaking ? '停' : '读'}
           </button>
         )}
 

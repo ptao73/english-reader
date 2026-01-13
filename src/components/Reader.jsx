@@ -144,7 +144,7 @@ export default function Reader({ article, onBack }) {
             onClick={speakCurrentSentence}
             title={isSpeaking ? '停止' : '朗读'}
           >
-            {isSpeaking ? '■' : '♪'}
+            {isSpeaking ? '停' : '读'}
           </button>
           <button
             className="btn-control"
