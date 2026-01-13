@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../db/schema.js';
 import { tts } from '../utils/tts.js';
 import { getSentenceAnalysis } from '../utils/ai.js';
@@ -20,58 +20,60 @@ export default function Reader({ article, onBack }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(null);
+  const [isProgressLoaded, setIsProgressLoaded] = useState(false);
 
   // 预加载缓存状态
-  const [cachedAnalysis, setCachedAnalysis] = useState(null);
+  const [analysisCache, setAnalysisCache] = useState({});
   const [isPrefetching, setIsPrefetching] = useState(false);
-  const prefetchRef = useRef(null);
+  const prefetchingIdRef = useRef(null);
 
+  // 加载阅读进度
   useEffect(() => {
     loadProgress();
   }, [article.id]);
 
+  // 当进度加载完成且 currentIndex 变化时，预加载分析
   useEffect(() => {
-    saveProgress();
-    // 当切换句子时，预加载当前句子的分析
-    prefetchCurrentSentence();
-
-    // 清理函数
-    return () => {
-      if (prefetchRef.current) {
-        prefetchRef.current = null;
-      }
-    };
-  }, [currentIndex]);
+    if (isProgressLoaded) {
+      prefetchAnalysis(currentIndex);
+      saveProgress();
+    }
+  }, [currentIndex, isProgressLoaded]);
 
   /**
-   * 预加载当前句子的分析
+   * 预加载指定句子的分析
    */
-  async function prefetchCurrentSentence() {
-    const sentence = article.sentences[currentIndex];
+  async function prefetchAnalysis(index) {
+    const sentence = article.sentences[index];
     if (!sentence) return;
 
-    // 重置缓存状态
-    setCachedAnalysis(null);
-    setIsPrefetching(true);
+    const sentenceId = sentence.sentenceId;
 
-    // 记录当前预加载的句子ID，用于取消过期请求
-    const currentSentenceId = sentence.sentenceId;
-    prefetchRef.current = currentSentenceId;
+    // 如果已经缓存了，不重复加载
+    if (analysisCache[sentenceId]) {
+      console.log('✅ 已有缓存，跳过预加载:', sentenceId);
+      return;
+    }
+
+    setIsPrefetching(true);
+    prefetchingIdRef.current = sentenceId;
 
     try {
-      console.log('🔄 预加载分析:', currentSentenceId);
-      const analysis = await getSentenceAnalysis(sentence.sentenceId, sentence.text);
+      console.log('🔄 开始预加载分析:', sentenceId);
+      const result = await getSentenceAnalysis(sentenceId, sentence.text);
 
-      // 确保返回的分析是当前句子的（防止快速切换时的竞态条件）
-      if (prefetchRef.current === currentSentenceId) {
-        setCachedAnalysis(analysis);
-        console.log('✅ 预加载完成:', currentSentenceId);
+      // 确保是当前句子的结果
+      if (prefetchingIdRef.current === sentenceId) {
+        setAnalysisCache(prev => ({
+          ...prev,
+          [sentenceId]: result
+        }));
+        console.log('✅ 预加载完成并缓存:', sentenceId);
       }
     } catch (err) {
-      console.error('预加载失败:', err);
-      // 预加载失败不影响用户操作，用户点击时会重新请求
+      console.error('❌ 预加载失败:', sentenceId, err.message);
     } finally {
-      if (prefetchRef.current === currentSentenceId) {
+      if (prefetchingIdRef.current === sentenceId) {
         setIsPrefetching(false);
       }
     }
@@ -94,6 +96,8 @@ export default function Reader({ article, onBack }) {
       }
     } catch (err) {
       console.error('加载进度失败:', err);
+    } finally {
+      setIsProgressLoaded(true);
     }
   }
 
@@ -103,6 +107,8 @@ export default function Reader({ article, onBack }) {
   async function saveProgress() {
     try {
       const currentSentence = article.sentences[currentIndex];
+      if (!currentSentence) return;
+
       const percentage = Math.round((currentIndex / article.sentences.length) * 100);
 
       await db.progress.put({
@@ -180,6 +186,11 @@ export default function Reader({ article, onBack }) {
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === article.sentences.length - 1;
 
+  // 获取当前句子的缓存分析
+  const currentCachedAnalysis = currentSentence
+    ? analysisCache[currentSentence.sentenceId]
+    : null;
+
   return (
     <div className="reader">
       {/* 顶部工具栏 */}
@@ -231,6 +242,12 @@ export default function Reader({ article, onBack }) {
               <span className="prefetch-status">🔄 预加载中...</span>
             </>
           )}
+          {currentCachedAnalysis && !isPrefetching && (
+            <>
+              <span>•</span>
+              <span className="prefetch-ready">✓ 已就绪</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -244,14 +261,16 @@ export default function Reader({ article, onBack }) {
 
       {/* 句子卡片 */}
       <div className="reader-content">
-        <SentenceCard
-          key={currentSentence.sentenceId}
-          sentence={currentSentence}
-          prefetchedAnalysis={cachedAnalysis}
-          onNext={!isLast ? goToNext : null}
-          onPrevious={!isFirst ? goToPrevious : null}
-          hideSpeakButton={true}
-        />
+        {currentSentence && (
+          <SentenceCard
+            key={currentSentence.sentenceId}
+            sentence={currentSentence}
+            prefetchedAnalysis={currentCachedAnalysis}
+            onNext={!isLast ? goToNext : null}
+            onPrevious={!isFirst ? goToPrevious : null}
+            hideSpeakButton={true}
+          />
+        )}
       </div>
 
       {/* 句子列表(可选:折叠/展开) */}

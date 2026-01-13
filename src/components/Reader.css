@@ -111,6 +111,12 @@
   font-size: 13px;
 }
 
+.reader-header .prefetch-ready {
+  color: #10B981;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 /* 进度条 */
 .progress-bar {
   height: 6px;
