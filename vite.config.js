@@ -7,14 +7,15 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon.svg'],
       manifest: {
-        name: 'English Learning Reader',
+        name: 'English Reader',
         short_name: 'EnReader',
-        description: '离线英文阅读学习工具 - 反直觉学习法',
-        theme_color: '#4F46E5',
-        background_color: '#ffffff',
+        description: '英文阅读学习工具',
+        theme_color: '#007AFF',
+        background_color: '#F2F2F7',
         display: 'standalone',
+        orientation: 'portrait',
         icons: [
           {
             src: 'icon-192.png',
@@ -25,6 +26,12 @@ export default defineConfig({
             src: 'icon-512.png',
             sizes: '512x512',
             type: 'image/png'
+          },
+          {
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },
