@@ -150,6 +150,12 @@
   font-weight: 500;
 }
 
+.sync-status {
+  margin: -6px 4px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .list-grid {
   display: flex;
   flex-direction: column;

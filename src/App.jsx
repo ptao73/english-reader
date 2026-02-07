@@ -5,6 +5,7 @@ import { db } from './db/schema.js';
 import { parseArticle } from './utils/textParser.js';
 import { tts, loadTTSSettings } from './utils/tts.js';
 import { recordActivity } from './utils/statistics.js';
+import { isGitHubConfigured, syncArticles, getArticlesSyncStatus } from './utils/github.js';
 import Reader from './components/Reader.jsx';
 import VocabularyList from './components/VocabularyList.jsx';
 import Statistics from './components/Statistics.jsx';
@@ -23,16 +24,20 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState(null);
+  const [articlesSyncStatus, setArticlesSyncStatus] = useState(null);
 
   // 粘贴弹窗状态
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pasteText, setPasteText] = useState('');
 
   const fileInputRef = useRef(null);
+  const syncInFlightRef = useRef(false);
 
   useEffect(() => {
     loadArticles();
     initializeTTSSettings();
+    runArticleSync({ silent: true });
+    refreshArticlesSyncStatus();
   }, []);
 
   // 初始化TTS设置
@@ -46,14 +51,107 @@ function App() {
     }
   }
 
+  async function loadDeletedArticles() {
+    const record = await db.settings.get('deletedArticles');
+    return Array.isArray(record?.value) ? record.value : [];
+  }
+
+  async function saveDeletedArticles(list) {
+    await db.settings.put({ key: 'deletedArticles', value: list });
+  }
+
+  async function addDeletedArticle(docId) {
+    const deleted = await loadDeletedArticles();
+    const now = new Date().toISOString();
+    const existing = deleted.find(item => item.docId === docId);
+    if (existing) {
+      existing.deletedAt = now;
+    } else {
+      deleted.push({ docId, deletedAt: now });
+    }
+    await saveDeletedArticles(deleted);
+    return now;
+  }
+
+  async function runArticleSync({ silent = false } = {}) {
+    if (!isGitHubConfigured()) return;
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
+
+    try {
+      const [localArticles, localProgress, localRevealState, deleted] = await Promise.all([
+        db.articles.toArray(),
+        db.progress.toArray(),
+        db.revealState.toArray(),
+        loadDeletedArticles()
+      ]);
+
+      const result = await syncArticles(
+        localArticles,
+        localProgress,
+        localRevealState,
+        deleted,
+        null
+      );
+
+      // 应用删除
+      for (const docId of result.deletedToApply || []) {
+        await db.articles.delete(docId);
+        await db.progress.delete(docId);
+        await db.sentences.where('docId').equals(docId).delete();
+        await db.revealState.where('sentenceId').startsWith(`${docId}:`).delete();
+      }
+
+      // 写入新增/更新数据
+      for (const article of result.newToLocal.articles || []) {
+        await db.articles.put(article);
+      }
+      for (const progress of result.newToLocal.progress || []) {
+        await db.progress.put(progress);
+      }
+      for (const reveal of result.newToLocal.revealState || []) {
+        await db.revealState.put(reveal);
+      }
+
+      if (Array.isArray(result.deleted)) {
+        await saveDeletedArticles(result.deleted);
+      }
+
+      await loadArticles();
+      await refreshArticlesSyncStatus();
+    } catch (err) {
+      console.error('文章同步失败:', err);
+      if (!silent) {
+        alert('文章同步失败: ' + err.message);
+      }
+    } finally {
+      syncInFlightRef.current = false;
+    }
+  }
+
+  async function refreshArticlesSyncStatus() {
+    if (!isGitHubConfigured()) {
+      setArticlesSyncStatus({ configured: false });
+      return;
+    }
+    try {
+      const status = await getArticlesSyncStatus();
+      setArticlesSyncStatus(status);
+    } catch (err) {
+      console.error('获取文章同步状态失败:', err);
+      setArticlesSyncStatus({ configured: true, error: err.message });
+    }
+  }
+
   async function loadArticles() {
     setLoading(true);
     try {
-      const allArticles = await db.articles
-        .orderBy('updatedAt')
-        .reverse()
-        .toArray();
-      setArticles(allArticles);
+      const [allArticles, deleted] = await Promise.all([
+        db.articles.orderBy('updatedAt').reverse().toArray(),
+        loadDeletedArticles()
+      ]);
+      const deletedIds = new Set((deleted || []).map(item => item.docId));
+      setArticles(allArticles.filter(article => !deletedIds.has(article.id)));
     } catch (err) {
       console.error('加载文章失败:', err);
     } finally {
@@ -119,6 +217,8 @@ function App() {
       setView('reading');
       setShowPasteModal(false);
       setPasteText('');
+      runArticleSync({ silent: true });
+      refreshArticlesSyncStatus();
     } catch (err) {
       console.error('导入失败:', err);
       setError('导入失败: ' + err.message);
@@ -203,6 +303,8 @@ function App() {
       setView('reading');
       setShowPasteModal(false);
       setPasteText('');
+      runArticleSync({ silent: true });
+      refreshArticlesSyncStatus();
     } catch (err) {
       console.error('导入失败:', err);
       setError('导入失败: ' + err.message);
@@ -228,15 +330,19 @@ function App() {
     if (!confirm('确定要删除这篇文章吗?')) return;
 
     try {
+      await addDeletedArticle(articleId);
       await db.articles.delete(articleId);
       await db.progress.delete(articleId);
       await db.sentences.where('docId').equals(articleId).delete();
+      await db.revealState.where('sentenceId').startsWith(`${articleId}:`).delete();
 
       setArticles(prev => prev.filter(a => a.id !== articleId));
 
       if (currentArticle?.id === articleId) {
         backToList();
       }
+      runArticleSync({ silent: true });
+      refreshArticlesSyncStatus();
     } catch (err) {
       console.error('删除失败:', err);
       alert('删除失败:' + err.message);
@@ -371,6 +477,7 @@ function App() {
         {view === 'list' && (
           <ArticleList
             articles={articles}
+            syncStatus={articlesSyncStatus}
             onRead={startReading}
             onDelete={deleteArticle}
           />
@@ -426,7 +533,7 @@ function App() {
 /**
  * 文章列表组件
  */
-function ArticleList({ articles, onRead, onDelete }) {
+function ArticleList({ articles, syncStatus, onRead, onDelete }) {
   const [progressMap, setProgressMap] = useState({});
 
   useEffect(() => {
@@ -460,6 +567,22 @@ function ArticleList({ articles, onRead, onDelete }) {
         <h2>📚 我的文章</h2>
         <span className="count">{articles.length} 篇</span>
       </div>
+      {syncStatus && (
+        <div className="sync-status">
+          {!syncStatus.configured && (
+            <span>未配置 GitHub Token，文章不同步</span>
+          )}
+          {syncStatus.configured && syncStatus.error && (
+            <span>同步状态获取失败: {syncStatus.error}</span>
+          )}
+          {syncStatus.configured && !syncStatus.error && syncStatus.lastSync && (
+            <span>上次同步: {new Date(syncStatus.lastSync).toLocaleString()}</span>
+          )}
+          {syncStatus.configured && !syncStatus.error && !syncStatus.lastSync && (
+            <span>尚未进行过文章同步</span>
+          )}
+        </div>
+      )}
 
       <div className="list-grid">
         {articles.map(article => {

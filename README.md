@@ -33,6 +33,9 @@ cp .env.example .env
 
 # 编辑.env,填入你的Anthropic API Key
 # VITE_ANTHROPIC_API_KEY=sk-ant-xxxxx
+
+# 可选: 启用跨设备同步 (文章自动同步 / 词汇手动同步)
+# VITE_GITHUB_TOKEN=ghp_xxxxxx
 ```
 
 **获取API Key**: https://console.anthropic.com/
@@ -130,6 +133,27 @@ APP会自动缓存所有AI分析结果:
 - 学习进度
 - 词汇表
 
+### GitHub 与本地同步（自动）
+
+**同步对象**:
+- 文章内容
+- 阅读进度
+- 反直觉揭示状态
+
+**同步方式**:
+- 本地数据为主
+- GitHub Gist 作为云端备份和跨设备同步
+- 按更新时间自动合并，冲突以最新为准
+- 删除会在多设备间同步删除
+
+**前置条件**:
+- 所有设备使用同一个 `VITE_GITHUB_TOKEN`
+- 首次运行会自动创建文章备份 Gist
+
+### 词汇同步（手动）
+
+词汇表同步是手动触发（词汇表页“云端同步”按钮）。
+
 ### 清理数据
 
 ```javascript
@@ -156,10 +180,10 @@ location.reload();
 - [x] ✅ 反直觉学习节奏
 - [x] ✅ PWA离线能力
 - [x] ✅ 三层缓存系统
-- [ ] 🔄 GitHub同步
+- [x] ✅ GitHub同步
 - [ ] 🔄 离线语音朗读
-- [ ] 🔄 词汇复习系统
-- [ ] 🔄 统计分析
+- [x] ✅ 词汇复习系统
+- [x] ✅ 统计分析
 
 ## 💡 常见问题
 

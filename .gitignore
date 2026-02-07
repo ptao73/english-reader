@@ -42,3 +42,4 @@ coverage
 sw.js
 workbox-*.js
 dev-dist
+.vercel
