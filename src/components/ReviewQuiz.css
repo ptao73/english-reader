@@ -1,0 +1,480 @@
+/*
+ * ReviewQuiz.css - iPhone 优化版
+ * 复习测验移动端样式
+ */
+
+/* 复习测验覆盖层 */
+.review-quiz-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 2000;
+}
+
+/* 测验面板 - iOS Sheet 风格 */
+.review-quiz-panel {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  width: 100%;
+  max-height: 95vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* 加载状态 */
+.quiz-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+}
+
+.quiz-loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--bg-tertiary);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.quiz-loading p {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+/* 错误状态 */
+.quiz-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.quiz-error .error-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.quiz-error h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.quiz-error p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  margin: 0 0 24px 0;
+}
+
+.btn-close-quiz {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.btn-close-quiz:active {
+  opacity: 0.8;
+}
+
+/* 测验头部 */
+.quiz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 0.5px solid var(--bg-tertiary);
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 10;
+}
+
+.quiz-progress {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.progress-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.quiz-header .progress-bar {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.quiz-header .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), #5AC8FA);
+  transition: width 0.3s ease;
+}
+
+.quiz-header .btn-close {
+  background: var(--bg-tertiary);
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  font-size: 16px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 题目类型标签 */
+.quiz-type-badge {
+  display: inline-block;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  margin: 16px 20px 0;
+}
+
+/* 题目内容 */
+.quiz-question {
+  padding: 16px 20px;
+}
+
+.target-word {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.target-word strong {
+  color: var(--color-primary);
+  font-size: 16px;
+}
+
+.btn-speak-mini {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  padding: 4px;
+  min-height: 32px;
+  min-width: 32px;
+  vertical-align: middle;
+}
+
+.question-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin: 0;
+  word-break: break-word;
+}
+
+.question-hint {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin: 12px 0 0;
+  font-style: italic;
+}
+
+/* 选项 */
+.quiz-options {
+  padding: 0 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-primary);
+  border: 2px solid var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.option-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.option-btn.selected {
+  background: rgba(0, 122, 255, 0.1);
+  border-color: var(--color-primary);
+}
+
+.option-btn.correct {
+  background: rgba(52, 199, 89, 0.1);
+  border-color: var(--color-success);
+}
+
+.option-btn.wrong {
+  background: rgba(255, 59, 48, 0.1);
+  border-color: var(--color-error);
+}
+
+.option-btn:disabled {
+  cursor: default;
+}
+
+.option-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--bg-tertiary);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.option-btn.correct .option-letter {
+  background: var(--color-success);
+  color: white;
+}
+
+.option-btn.wrong .option-letter {
+  background: var(--color-error);
+  color: white;
+}
+
+.option-text {
+  flex: 1;
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.option-icon {
+  font-size: 18px;
+  margin-left: 8px;
+}
+
+/* 结果反馈 */
+.quiz-feedback {
+  margin: 0 20px 20px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.quiz-feedback.correct {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--color-success);
+}
+
+.quiz-feedback.wrong {
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--color-error);
+}
+
+.quiz-feedback p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.quiz-feedback strong {
+  color: var(--color-primary);
+}
+
+/* 操作按钮 */
+.quiz-actions {
+  padding: 0 20px 20px;
+  padding-bottom: calc(20px + var(--safe-area-bottom, 0px));
+}
+
+.btn-next {
+  width: 100%;
+  height: 50px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.btn-next:active {
+  opacity: 0.8;
+}
+
+/* 测验完成 */
+.quiz-complete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+  padding-bottom: calc(40px + var(--safe-area-bottom, 0px));
+}
+
+.complete-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.quiz-complete h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 20px 0;
+}
+
+.complete-stats {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.complete-stats .stat {
+  flex: 1;
+  text-align: center;
+  padding: 16px 12px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+}
+
+.complete-stats .stat.correct {
+  background: rgba(52, 199, 89, 0.1);
+}
+
+.complete-stats .stat .value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.complete-stats .stat.correct .value {
+  color: var(--color-success);
+}
+
+.complete-stats .stat .label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.wrong-words {
+  width: 100%;
+  background: rgba(255, 59, 48, 0.1);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.wrong-words h3 {
+  font-size: 14px;
+  color: var(--color-error);
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.wrong-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.wrong-word {
+  background: var(--bg-secondary);
+  color: var(--color-error);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-finish {
+  width: 100%;
+  height: 50px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.btn-finish:active {
+  opacity: 0.8;
+}
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .option-btn.selected {
+    background: rgba(0, 122, 255, 0.2);
+  }
+  .option-btn.correct {
+    background: rgba(52, 199, 89, 0.2);
+  }
+  .option-btn.wrong {
+    background: rgba(255, 59, 48, 0.2);
+  }
+  .quiz-feedback.correct {
+    background: rgba(52, 199, 89, 0.2);
+  }
+  .quiz-feedback.wrong {
+    background: rgba(255, 59, 48, 0.2);
+  }
+  .complete-stats .stat.correct {
+    background: rgba(52, 199, 89, 0.2);
+  }
+  .wrong-words {
+    background: rgba(255, 59, 48, 0.15);
+  }
+}
+
+/* 大屏幕适配 */
+@media (min-width: 768px) {
+  .review-quiz-overlay {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .review-quiz-panel {
+    max-width: 500px;
+    border-radius: var(--radius-xl);
+    max-height: 90vh;
+  }
+}

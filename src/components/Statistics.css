@@ -1,0 +1,362 @@
+/*
+ * Statistics.css - iPhone 优化版
+ * 统计面板移动端样式
+ */
+
+/* 统计页面 */
+.statistics-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding-bottom: 100px;
+}
+
+/* 工具栏 */
+.stats-toolbar {
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  padding: 12px 16px;
+  padding-top: calc(var(--safe-area-top, 0px) + 12px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 0.5px solid var(--bg-tertiary);
+  z-index: 100;
+}
+
+.stats-toolbar h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.stats-toolbar .btn-back {
+  display: none; /* 使用底部导航 */
+}
+
+.stats-toolbar .btn-refresh {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-toolbar .btn-refresh:active {
+  opacity: 0.8;
+}
+
+/* 加载状态 */
+.statistics-page .loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+}
+
+.statistics-page .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--bg-tertiary);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 统计卡片网格 */
+.stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+/* 统计卡片 */
+.stats-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.stats-card h2 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 0.5px solid var(--bg-tertiary);
+}
+
+/* 统计项目 */
+.stats-items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stats-card .stat-item {
+  text-align: center;
+  padding: 12px 8px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+}
+
+.stats-card .stat-item.highlight {
+  background: rgba(52, 199, 89, 0.1);
+}
+
+.stats-card .stat-item.highlight .stat-value {
+  color: var(--color-success);
+}
+
+.stats-card .stat-item.warning {
+  background: rgba(255, 149, 0, 0.1);
+}
+
+.stats-card .stat-item.warning .stat-value {
+  color: var(--color-warning);
+}
+
+.stats-card .stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.stats-card .stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* 进度条 */
+.progress-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 0.5px solid var(--bg-tertiary);
+}
+
+.stats-card .progress-bar {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.stats-card .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), #5AC8FA);
+  transition: width 0.5s ease;
+}
+
+.stats-card .progress-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 今日复习区域 */
+.today-section {
+  margin-top: 16px;
+  padding: 14px;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.today-section h3 {
+  font-size: 13px;
+  color: var(--color-primary);
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.today-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.today-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.today-label {
+  font-size: 14px;
+  color: var(--color-primary);
+}
+
+.today-accuracy {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+/* 每日趋势 */
+.daily-trend {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin: 0 16px 12px;
+}
+
+.daily-trend h2 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+}
+
+.trend-chart {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 120px;
+  padding: 0 4px;
+  gap: 6px;
+}
+
+.trend-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.trend-bar {
+  flex: 1;
+  width: 100%;
+  max-width: 40px;
+  background: linear-gradient(180deg, var(--color-primary), #5AC8FA);
+  border-radius: 4px 4px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 5%;
+  transition: height 0.3s ease;
+}
+
+.trend-value {
+  font-size: 10px;
+  color: white;
+  font-weight: 600;
+  padding-top: 4px;
+}
+
+.trend-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+.trend-legend {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* 学习提示 */
+.learning-tips {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin: 0 16px;
+}
+
+.learning-tips h2 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.tips-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tip {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tip.info {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--color-primary);
+  border-left: 3px solid var(--color-primary);
+}
+
+.tip.warning {
+  background: rgba(255, 149, 0, 0.1);
+  color: var(--color-warning);
+  border-left: 3px solid var(--color-warning);
+}
+
+.tip.success {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--color-success);
+  border-left: 3px solid var(--color-success);
+}
+
+.tip strong {
+  font-weight: 600;
+}
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .stats-card .stat-item.highlight {
+    background: rgba(52, 199, 89, 0.15);
+  }
+  .stats-card .stat-item.warning {
+    background: rgba(255, 149, 0, 0.15);
+  }
+  .today-section {
+    background: rgba(0, 122, 255, 0.15);
+  }
+  .tip.info {
+    background: rgba(0, 122, 255, 0.15);
+  }
+  .tip.warning {
+    background: rgba(255, 149, 0, 0.15);
+  }
+  .tip.success {
+    background: rgba(52, 199, 89, 0.15);
+  }
+}
+
+/* 大屏幕适配 */
+@media (min-width: 768px) {
+  .statistics-page {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .stats-items {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  }
+
+  .trend-chart {
+    height: 150px;
+  }
+}

@@ -1,8 +1,56 @@
 /**
  * 文本转语音(TTS)工具 - 优化版
  * 使用浏览器原生Web Speech API
- * 支持: 语速调整、音调优化、Bridge Pattern、异常处理
+ * 支持: 语速调整、音调优化、Bridge Pattern、异常处理、设置持久化
  */
+
+import { db } from '../db/schema.js';
+
+// TTS设置的存储键名
+const TTS_SETTINGS_KEY = 'tts_settings';
+
+// 默认TTS设置
+const DEFAULT_TTS_SETTINGS = {
+  rate: 0.85,
+  pitch: 1.0,
+  volume: 1.0,
+  selectedVoice: ''
+};
+
+/**
+ * 从IndexedDB加载TTS设置
+ * @returns {Promise<Object>} 设置对象
+ */
+export async function loadTTSSettings() {
+  try {
+    const record = await db.settings.get(TTS_SETTINGS_KEY);
+    if (record && record.value) {
+      return { ...DEFAULT_TTS_SETTINGS, ...record.value };
+    }
+    return { ...DEFAULT_TTS_SETTINGS };
+  } catch (err) {
+    console.error('加载TTS设置失败:', err);
+    return { ...DEFAULT_TTS_SETTINGS };
+  }
+}
+
+/**
+ * 保存TTS设置到IndexedDB
+ * @param {Object} settings - 设置对象
+ * @returns {Promise<void>}
+ */
+export async function saveTTSSettings(settings) {
+  try {
+    await db.settings.put({
+      key: TTS_SETTINGS_KEY,
+      value: settings
+    });
+    console.log('TTS设置已保存:', settings);
+  } catch (err) {
+    console.error('保存TTS设置失败:', err);
+    throw err;
+  }
+}
 
 /**
  * TTS 引擎接口 (Bridge Pattern)
@@ -131,9 +179,17 @@ class BrowserTTSEngine extends TTSEngine {
         try {
           // 创建utterance
           const utterance = new SpeechSynthesisUtterance(text);
-          
-          // 选择语音
-          const voice = this.getEnglishVoices();
+
+          // 选择语音: 优先使用指定的语音
+          let voice = null;
+          if (options.preferredVoice) {
+            const allVoices = this.synthesis.getVoices();
+            voice = allVoices.find(v => v.name === options.preferredVoice);
+          }
+          // 如果没有指定或找不到，使用默认英文语音
+          if (!voice) {
+            voice = this.getEnglishVoices();
+          }
           if (voice) {
             utterance.voice = voice;
           }
@@ -430,10 +486,24 @@ class TextToSpeech {
   }
 
   /**
-   * 朗读文本
+   * 朗读文本 - 自动应用保存的设置
    */
   async speak(text, options = {}) {
-    return this.engine.speak(text, options);
+    // 合并保存的设置和传入的选项
+    const savedSettings = this.currentSettings || {};
+    const mergedOptions = {
+      rate: savedSettings.rate || 0.85,
+      pitch: savedSettings.pitch || 1.0,
+      volume: savedSettings.volume || 1.0,
+      ...options  // 传入的选项优先级更高
+    };
+
+    // 如果保存了特定语音，尝试使用
+    if (savedSettings.selectedVoice && this.engine instanceof BrowserTTSEngine) {
+      mergedOptions.preferredVoice = savedSettings.selectedVoice;
+    }
+
+    return this.engine.speak(text, mergedOptions);
   }
 
   /**
@@ -483,6 +553,37 @@ class TextToSpeech {
       return this.engine.getAllVoices();
     }
     return [];
+  }
+
+  /**
+   * 获取最佳英文语音 (仅浏览器引擎)
+   */
+  getEnglishVoices() {
+    if (this.engine instanceof BrowserTTSEngine) {
+      return this.engine.getEnglishVoices();
+    }
+    return null;
+  }
+
+  /**
+   * 应用TTS设置
+   * @param {Object} settings - 设置对象 {rate, pitch, volume, selectedVoice}
+   */
+  applySettings(settings) {
+    this.currentSettings = settings;
+    console.log('TTS设置已应用:', settings);
+  }
+
+  /**
+   * 获取当前设置
+   */
+  getCurrentSettings() {
+    return this.currentSettings || {
+      rate: 0.85,
+      pitch: 1.0,
+      volume: 1.0,
+      selectedVoice: ''
+    };
   }
 }
 

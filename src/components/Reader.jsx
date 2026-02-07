@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../db/schema.js';
 import { tts } from '../utils/tts.js';
 import { getSentenceAnalysis, getWordAnalysis } from '../utils/ai.js';
+import { recordActivity } from '../utils/statistics.js';
+import { initializeWordSM2 } from '../utils/spacedRepetition.js';
 import SentenceCard from './SentenceCard.jsx';
 import './Reader.css';
 
@@ -160,8 +162,8 @@ export default function Reader({ article, onBack }) {
       // 调用AI获取单词分析
       const analysis = await getWordAnalysis(word, context);
 
-      // 写入词汇表
-      await db.vocabulary.add({
+      // 构建单词对象并初始化SM-2参数
+      const wordData = initializeWordSM2({
         word: cleanWord,
         originalWord: word,
         phonetic: analysis.phonetic,
@@ -174,12 +176,15 @@ export default function Reader({ article, onBack }) {
         contextMeaning: analysis.contextMeaning,
         articleId: article.id,
         articleTitle: article.title,
-        reviewCount: 0,
-        nextReview: new Date().toISOString(),
-        mastered: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
+
+      // 写入词汇表
+      await db.vocabulary.add(wordData);
+
+      // 记录统计: 收集单词
+      await recordActivity('word_collected');
 
       setSaveSuccess({ word: cleanWord, isNew: true });
       console.log('✅ 单词已保存:', cleanWord);

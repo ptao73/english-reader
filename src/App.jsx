@@ -3,8 +3,11 @@ import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import { db } from './db/schema.js';
 import { parseArticle } from './utils/textParser.js';
+import { tts, loadTTSSettings } from './utils/tts.js';
+import { recordActivity } from './utils/statistics.js';
 import Reader from './components/Reader.jsx';
 import VocabularyList from './components/VocabularyList.jsx';
+import Statistics from './components/Statistics.jsx';
 import './App.css';
 
 // 配置 PDF.js worker
@@ -29,7 +32,19 @@ function App() {
 
   useEffect(() => {
     loadArticles();
+    initializeTTSSettings();
   }, []);
+
+  // 初始化TTS设置
+  async function initializeTTSSettings() {
+    try {
+      const settings = await loadTTSSettings();
+      tts.applySettings(settings);
+      console.log('TTS设置已初始化');
+    } catch (err) {
+      console.error('初始化TTS设置失败:', err);
+    }
+  }
 
   async function loadArticles() {
     setLoading(true);
@@ -95,6 +110,9 @@ function App() {
         percentage: 0,
         lastReadAt: new Date().toISOString()
       });
+
+      // 记录统计: 导入文章
+      await recordActivity('article_imported');
 
       setArticles(prev => [article, ...prev]);
       setCurrentArticle(article);
@@ -176,6 +194,9 @@ function App() {
         percentage: 0,
         lastReadAt: new Date().toISOString()
       });
+
+      // 记录统计: 导入文章
+      await recordActivity('article_imported');
 
       setArticles(prev => [article, ...prev]);
       setCurrentArticle(article);
@@ -266,6 +287,12 @@ function App() {
               📚 词汇表
             </button>
             <button
+              className={view === 'statistics' ? 'active' : ''}
+              onClick={() => { setView('statistics'); closePasteModal(); }}
+            >
+              📊 统计
+            </button>
+            <button
               className={showPasteModal ? 'active' : ''}
               onClick={handleImportClick}
               disabled={importing}
@@ -352,13 +379,46 @@ function App() {
         {view === 'vocabulary' && (
           <VocabularyList onBack={() => setView('list')} />
         )}
+
+        {view === 'statistics' && (
+          <Statistics onBack={() => setView('list')} />
+        )}
       </main>
 
-      {/* 底部信息 */}
-      <footer className="app-footer">
-        <p>⚡ Powered by React + IndexedDB + Claude AI</p>
-        <p className="tip">💡 反直觉学习法:先思考,再揭示答案</p>
-      </footer>
+      {/* 底部导航栏 */}
+      <nav className="bottom-nav">
+        <div className="bottom-nav-content">
+          <button
+            className={`nav-item ${view === 'list' ? 'active' : ''}`}
+            onClick={() => { setView('list'); closePasteModal(); }}
+          >
+            <span className="nav-icon">📚</span>
+            <span className="nav-label">文章</span>
+          </button>
+          <button
+            className={`nav-item ${view === 'vocabulary' ? 'active' : ''}`}
+            onClick={() => { setView('vocabulary'); closePasteModal(); }}
+          >
+            <span className="nav-icon">📝</span>
+            <span className="nav-label">词汇</span>
+          </button>
+          <button
+            className="nav-item nav-item-add"
+            onClick={handleImportClick}
+            disabled={importing}
+          >
+            <span className="nav-icon">➕</span>
+            <span className="nav-label">导入</span>
+          </button>
+          <button
+            className={`nav-item ${view === 'statistics' ? 'active' : ''}`}
+            onClick={() => { setView('statistics'); closePasteModal(); }}
+          >
+            <span className="nav-icon">📊</span>
+            <span className="nav-label">统计</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

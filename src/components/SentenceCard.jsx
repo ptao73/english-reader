@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { getSentenceAnalysisStream } from '../utils/ai.js';
 import { tts } from '../utils/tts.js';
 import { tokenizeSentence } from '../utils/textParser.js';
+import { recordActivity } from '../utils/statistics.js';
 import './SentenceCard.css';
 
 /**
@@ -98,7 +99,11 @@ export default function SentenceCard({
    */
   async function revealNext() {
     if (revealLevel === 0) {
-      // 第一次点击
+      // 第一次点击 - 记录阅读统计
+      recordActivity('sentence_read').catch(err => {
+        console.error('记录统计失败:', err);
+      });
+
       if (analysis || prefetchedAnalysis) {
         // 已有分析，直接使用
         if (!analysis && prefetchedAnalysis) {

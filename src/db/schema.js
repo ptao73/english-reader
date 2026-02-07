@@ -18,29 +18,56 @@ class EnglishLearningDB extends Dexie {
     this.version(1).stores({
       // 文章表
       articles: 'id, title, createdAt, updatedAt',
-      
+
       // 句子表(sentenceId格式: docId:chId:pN:sM)
       sentences: 'sentenceId, docId, text, level, updatedAt',
-      
+
       // AI缓存表(L1本地缓存)
       // key: sentenceId 或 word
       // type: 'sentence' | 'word'
       aiCache: 'key, type, createdAt',
-      
+
       // 词汇表
       // id: 自增ID
       // word: 单词(索引)
       vocabulary: '++id, word, nextReview, mastered, createdAt',
-      
+
       // 学习进度
       progress: 'docId, currentSentenceId, percentage, lastReadAt',
-      
+
       // 反直觉学习状态(关键!)
       // sentenceId -> level (1/2/3)
       revealState: 'sentenceId, level, updatedAt',
-      
+
       // 离线模型索引(未来使用)
       models: 'name, version, downloadedAt'
+    });
+
+    // Version 2: 添加复习系统、统计和设置表
+    this.version(2).stores({
+      articles: 'id, title, createdAt, updatedAt',
+      sentences: 'sentenceId, docId, text, level, updatedAt',
+      aiCache: 'key, type, createdAt',
+      vocabulary: '++id, word, nextReview, mastered, createdAt',
+      progress: 'docId, currentSentenceId, percentage, lastReadAt',
+      revealState: 'sentenceId, level, updatedAt',
+      models: 'name, version, downloadedAt',
+
+      // 复习历史记录
+      // id: 自增ID
+      // wordId: 关联的单词ID
+      // quizType: 测验类型 (zhToEn, enToZh, fillBlank, context)
+      // isCorrect: 是否答对
+      // reviewedAt: 复习时间
+      reviewHistory: '++id, wordId, quizType, isCorrect, reviewedAt',
+
+      // 学习统计 (按日期聚合)
+      // date: 日期字符串 (YYYY-MM-DD)
+      learningStats: 'date',
+
+      // 用户设置
+      // key: 设置键名
+      settings: 'key'
     });
 
     // 表引用
@@ -51,6 +78,9 @@ class EnglishLearningDB extends Dexie {
     this.progress = this.table('progress');
     this.revealState = this.table('revealState');
     this.models = this.table('models');
+    this.reviewHistory = this.table('reviewHistory');
+    this.learningStats = this.table('learningStats');
+    this.settings = this.table('settings');
   }
 }
 
@@ -128,4 +158,29 @@ export const RevealStateSchema = {
   sentenceId: 'string',
   level: 'number',        // 1/2/3
   updatedAt: 'string'
+};
+
+// ReviewHistory类型(复习记录)
+export const ReviewHistorySchema = {
+  id: 'number',           // 自增ID
+  wordId: 'number',       // 关联的单词ID
+  quizType: 'string',     // 'zhToEn' | 'enToZh' | 'fillBlank' | 'context'
+  isCorrect: 'boolean',   // 是否答对
+  reviewedAt: 'string'    // ISO 8601
+};
+
+// LearningStats类型(每日统计)
+export const LearningStatsSchema = {
+  date: 'string',             // YYYY-MM-DD
+  articlesImported: 'number', // 导入文章数
+  sentencesRead: 'number',    // 阅读句子数
+  wordsCollected: 'number',   // 收集单词数
+  reviewCount: 'number',      // 复习次数
+  correctCount: 'number'      // 正确次数
+};
+
+// Settings类型(用户设置)
+export const SettingsSchema = {
+  key: 'string',          // 设置键名
+  value: 'any'            // 设置值(可为任意类型)
 };

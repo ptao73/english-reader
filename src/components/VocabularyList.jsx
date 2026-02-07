@@ -6,6 +6,8 @@ import {
   syncVocabulary,
   getSyncStatus
 } from '../utils/github.js';
+import { getDueWords } from '../utils/spacedRepetition.js';
+import ReviewQuiz from './ReviewQuiz.jsx';
 import './VocabularyList.css';
 
 /**
@@ -24,10 +26,32 @@ export default function VocabularyList({ onBack }) {
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState('');
 
+  // 复习测验状态
+  const [showReviewQuiz, setShowReviewQuiz] = useState(false);
+  const [dueCount, setDueCount] = useState(0);
+
   useEffect(() => {
     loadWords();
     checkSyncStatus();
+    checkDueWords();
   }, [filter, sortBy]);
+
+  // 检查待复习单词数量
+  async function checkDueWords() {
+    try {
+      const dueWords = await getDueWords(100);
+      setDueCount(dueWords.length);
+    } catch (err) {
+      console.error('检查待复习单词失败:', err);
+    }
+  }
+
+  // 复习完成回调
+  function handleReviewComplete(results) {
+    console.log('复习完成:', results);
+    loadWords();
+    checkDueWords();
+  }
 
   useEffect(() => {
     // 搜索时防抖
@@ -182,8 +206,20 @@ export default function VocabularyList({ onBack }) {
         </button>
         <h1>我的词汇表</h1>
 
-        {/* 同步按钮区域 */}
-        <div className="sync-section">
+        {/* 复习和同步按钮区域 */}
+        <div className="action-section">
+          {/* 开始复习按钮 */}
+          <button
+            className={`btn-review ${dueCount > 0 ? 'has-due' : ''}`}
+            onClick={() => setShowReviewQuiz(true)}
+            disabled={words.length < 4}
+            title={words.length < 4 ? '至少需要4个单词才能开始复习' : '开始复习'}
+          >
+            🎯 开始复习
+            {dueCount > 0 && <span className="due-badge">{dueCount}</span>}
+          </button>
+
+          {/* 同步按钮 */}
           <button
             className={`btn-sync ${syncing ? 'syncing' : ''} ${!syncStatus?.configured ? 'disabled' : ''}`}
             onClick={handleSync}
@@ -300,6 +336,14 @@ export default function VocabularyList({ onBack }) {
           onToggleMastered={() => toggleMastered(selectedWord.id)}
           onDelete={() => deleteWord(selectedWord.id)}
           onSpeak={() => speakWord(selectedWord.word)}
+        />
+      )}
+
+      {/* 复习测验 */}
+      {showReviewQuiz && (
+        <ReviewQuiz
+          onClose={() => setShowReviewQuiz(false)}
+          onComplete={handleReviewComplete}
         />
       )}
     </div>

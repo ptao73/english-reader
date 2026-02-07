@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { tts } from '../utils/tts.js';
+import { tts, loadTTSSettings, saveTTSSettings } from '../utils/tts.js';
 import './VoiceSettings.css';
 
 /**
  * 语音设置组件
- * 允许用户调整TTS参数
+ * 允许用户调整TTS参数，支持设置持久化
  */
 export default function VoiceSettings({ isOpen, onClose }) {
   const [rate, setRate] = useState(0.85);
@@ -12,19 +12,58 @@ export default function VoiceSettings({ isOpen, onClose }) {
   const [volume, setVolume] = useState(1.0);
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadVoices();
+    loadVoicesAndSettings();
   }, []);
 
-  function loadVoices() {
-    const availableVoices = tts.getAllVoices();
-    const englishVoices = availableVoices.filter(v => v.lang.startsWith('en-'));
-    setVoices(englishVoices);
-    
-    const defaultVoice = tts.getEnglishVoices();
-    if (defaultVoice) {
-      setSelectedVoice(defaultVoice.name);
+  async function loadVoicesAndSettings() {
+    setLoading(true);
+    try {
+      // 加载可用语音
+      const availableVoices = tts.getAllVoices();
+      const englishVoices = availableVoices.filter(v => v.lang.startsWith('en-'));
+      setVoices(englishVoices);
+
+      // 从IndexedDB加载保存的设置
+      const savedSettings = await loadTTSSettings();
+      setRate(savedSettings.rate);
+      setPitch(savedSettings.pitch);
+      setVolume(savedSettings.volume);
+
+      // 优先使用保存的语音，否则用默认语音
+      if (savedSettings.selectedVoice && englishVoices.some(v => v.name === savedSettings.selectedVoice)) {
+        setSelectedVoice(savedSettings.selectedVoice);
+      } else {
+        const defaultVoice = tts.getEnglishVoices();
+        if (defaultVoice) {
+          setSelectedVoice(defaultVoice.name);
+        }
+      }
+    } catch (err) {
+      console.error('加载设置失败:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await saveTTSSettings({
+        rate,
+        pitch,
+        volume,
+        selectedVoice
+      });
+      onClose();
+    } catch (err) {
+      console.error('保存设置失败:', err);
+      alert('保存失败: ' + err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -37,6 +76,19 @@ export default function VoiceSettings({ isOpen, onClose }) {
   }
 
   if (!isOpen) return null;
+
+  if (loading) {
+    return (
+      <div className="voice-settings-overlay">
+        <div className="voice-settings-panel">
+          <div className="panel-content" style={{ textAlign: 'center', padding: '40px' }}>
+            <div className="spinner"></div>
+            <p>加载设置...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="voice-settings-overlay" onClick={onClose}>
@@ -126,8 +178,8 @@ export default function VoiceSettings({ isOpen, onClose }) {
         </div>
 
         <div className="panel-footer">
-          <button className="btn-save" onClick={onClose}>
-            保存设置
+          <button className="btn-save" onClick={handleSave} disabled={saving}>
+            {saving ? '保存中...' : '保存设置'}
           </button>
         </div>
       </div>
