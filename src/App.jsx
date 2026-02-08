@@ -29,6 +29,7 @@ function App() {
   // 粘贴弹窗状态
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pasteText, setPasteText] = useState('');
+  const [urlDetected, setUrlDetected] = useState(false);
 
   const fileInputRef = useRef(null);
   const syncInFlightRef = useRef(false);
@@ -170,6 +171,7 @@ function App() {
       // 弹窗未打开，显示粘贴弹窗
       setShowPasteModal(true);
       setPasteText('');
+      setUrlDetected(false);
       setError(null);
     }
   }
@@ -185,6 +187,64 @@ function App() {
     return 'Article ' + new Date().toLocaleDateString();
   }
 
+  function isUrlLike(text) {
+    const t = text.trim();
+    if (!t || t.includes(' ')) return false;
+    return /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(t);
+  }
+
+  async function extractFromUrl(url) {
+    const response = await fetch('/api/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || '抓取失败');
+    }
+    return data;
+  }
+
+  function downloadTextFile(title, content) {
+    const safeTitle = (title || 'article')
+      .replace(/[\\\\/:*?\"<>|]+/g, '')
+      .trim()
+      .slice(0, 80) || 'article';
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeTitle}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function importArticleFromText(title, content) {
+    const article = parseArticle(title.trim(), content.trim());
+
+    await db.articles.add(article);
+    await db.progress.put({
+      docId: article.id,
+      currentSentenceId: article.sentences[0].sentenceId,
+      percentage: 0,
+      lastReadAt: new Date().toISOString()
+    });
+
+    await recordActivity('article_imported');
+
+    setArticles(prev => [article, ...prev]);
+    setCurrentArticle(article);
+    setView('reading');
+    setShowPasteModal(false);
+    setPasteText('');
+    setUrlDetected(false);
+    runArticleSync({ silent: true });
+    refreshArticlesSyncStatus();
+  }
+
   /**
    * 处理粘贴文本导入
    */
@@ -198,27 +258,15 @@ function App() {
     setError(null);
 
     try {
+      if (isUrlLike(pasteText)) {
+        const { title, content } = await extractFromUrl(pasteText.trim());
+        downloadTextFile(title, content);
+        await importArticleFromText(title || generateTitle(content), content);
+        return;
+      }
+
       const title = generateTitle(pasteText);
-      const article = parseArticle(title.trim(), pasteText.trim());
-
-      await db.articles.add(article);
-      await db.progress.put({
-        docId: article.id,
-        currentSentenceId: article.sentences[0].sentenceId,
-        percentage: 0,
-        lastReadAt: new Date().toISOString()
-      });
-
-      // 记录统计: 导入文章
-      await recordActivity('article_imported');
-
-      setArticles(prev => [article, ...prev]);
-      setCurrentArticle(article);
-      setView('reading');
-      setShowPasteModal(false);
-      setPasteText('');
-      runArticleSync({ silent: true });
-      refreshArticlesSyncStatus();
+      await importArticleFromText(title, pasteText);
     } catch (err) {
       console.error('导入失败:', err);
       setError('导入失败: ' + err.message);
@@ -352,6 +400,7 @@ function App() {
   function closePasteModal() {
     setShowPasteModal(false);
     setPasteText('');
+    setUrlDetected(false);
     setError(null);
   }
 
@@ -426,16 +475,25 @@ function App() {
 
             <textarea
               className="paste-textarea"
-              placeholder={'在此粘贴英文文章内容...\n\n或点击下方【选择文件】按钮'}
+              placeholder={'在此粘贴英文文章内容或网页链接...\n\n也可点击下方【选择文件】按钮'}
               value={pasteText}
-              onChange={e => setPasteText(e.target.value)}
+              onChange={e => {
+                const value = e.target.value;
+                setPasteText(value);
+                setUrlDetected(isUrlLike(value));
+              }}
               disabled={importing}
               rows={12}
             />
+            {urlDetected && (
+              <div className="url-hint">
+                检测到URL，点击“开始阅读”将自动抓取正文并下载 .txt
+              </div>
+            )}
 
             <div className="paste-modal-footer">
               <span className="hint">
-                {pasteText.trim() ? `${pasteText.split(/\s+/).filter(w => w).length} 个单词` : '支持粘贴或选择 .txt/.docx/.pdf 文件'}
+                {pasteText.trim() ? `${pasteText.split(/\s+/).filter(w => w).length} 个单词` : '支持粘贴英文内容/网页链接或选择 .txt/.docx/.pdf 文件'}
               </span>
               <div className="footer-buttons">
                 <button
