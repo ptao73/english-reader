@@ -32,14 +32,17 @@ npm install
 # 复制环境变量模板
 cp .env.example .env
 
-# 编辑.env,填入你的Anthropic API Key
-# VITE_ANTHROPIC_API_KEY=sk-ant-xxxxx
+# 编辑.env,填入你的AI API Key
+# VITE_QWEN_API_KEY=sk-xxxxx
+# VITE_GOOGLE_API_KEY=AIzaSyxxxxx (可选,优先调用)
 
 # 可选: 启用跨设备同步 (文章自动同步 / 词汇手动同步)
 # VITE_GITHUB_TOKEN=ghp_xxxxxx
 ```
 
-**获取API Key**: https://console.anthropic.com/
+**获取API Key**:
+- Qwen: https://dashscope.console.aliyun.com/apiKey
+- Gemini: https://aistudio.google.com/app/apikey
 
 ### 4. 启动开发服务器
 
@@ -178,7 +181,7 @@ location.reload();
 - **构建工具**: Vite
 - **数据库**: IndexedDB (Dexie.js)
 - **PWA**: vite-plugin-pwa
-- **AI**: Claude Sonnet 4 (Anthropic API)
+- **AI**: Gemini / Qwen (可配置)
 
 ## 📈 开发路线图
 
@@ -195,7 +198,7 @@ location.reload();
 
 ### Q: 为什么需要API Key?
 
-A: APP使用Claude AI来分析句子,提供语法解析和翻译。API Key是访问AI服务的凭证。
+A: APP使用AI来分析句子,提供语法解析和翻译。API Key是访问AI服务的凭证。
 
 ### Q: API调用会很贵吗?
 
@@ -236,7 +239,7 @@ MIT License
 
 ## 🙏 致谢
 
-- Claude AI (Anthropic)
+- Gemini / Qwen
 - React团队
 - Vite团队
 - Dexie.js
@@ -252,3 +255,9 @@ MIT License
 - 自动导入到阅读器
 
 **说明**: 该功能使用 Vercel Serverless 接口 `/api/extract` 抓取网页正文。
+
+### 模型选择与自动回退
+
+- 默认优先调用 Gemini (若配置了 `VITE_GOOGLE_API_KEY`)
+- Gemini 失败时自动切换到 Qwen
+- 顶部小图标可手动切换模型

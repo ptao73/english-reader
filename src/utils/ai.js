@@ -9,7 +9,14 @@ import { db } from '../db/schema.js';
  */
 
 const QWEN_API_KEY = import.meta.env.VITE_QWEN_API_KEY || '';
-const API_ENDPOINT = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+const QWEN_MODEL = import.meta.env.VITE_QWEN_MODEL || 'qwen-plus';
+const QWEN_API_ENDPOINT = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
+const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash';
+const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+const MODEL_SETTINGS_KEY = 'ai_model_preference';
 
 /**
  * 核心Prompt: 句子三层分析
@@ -80,6 +87,152 @@ ${context ? `出现语境: "${context}"` : ''}
 只输出JSON,不要其他内容。
 `;
 
+async function getPreferredModel() {
+  const record = await db.settings.get(MODEL_SETTINGS_KEY);
+  const stored = record?.value;
+  if (stored === 'gemini' || stored === 'qwen') return stored;
+  if (GOOGLE_API_KEY) return 'gemini';
+  return 'qwen';
+}
+
+async function setPreferredModel(model) {
+  if (model !== 'gemini' && model !== 'qwen') return;
+  await db.settings.put({ key: MODEL_SETTINGS_KEY, value: model });
+}
+
+function shouldFallback(err) {
+  const msg = `${err?.message || ''}`.toLowerCase();
+  return (
+    msg.includes('429') ||
+    msg.includes('rate') ||
+    msg.includes('timeout') ||
+    msg.includes('network') ||
+    msg.includes('fetch') ||
+    msg.includes('socket')
+  );
+}
+
+async function callGeminiAPI(prompt) {
+  if (!GOOGLE_API_KEY) {
+    throw new Error('未配置GOOGLE_API_KEY,请在.env文件中设置VITE_GOOGLE_API_KEY');
+  }
+
+  const response = await fetch(`${GEMINI_API_ENDPOINT}/${GEMINI_MODEL}:generateContent?key=${GOOGLE_API_KEY}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [
+        { role: 'user', parts: [{ text: prompt }] }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1500
+      }
+    })
+  });
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const error = await response.json();
+      errorMessage = error.error?.message || errorMessage;
+    } catch {}
+    throw new Error(`API调用失败: ${errorMessage}`);
+  }
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+  if (!text) {
+    throw new Error('AI返回为空');
+  }
+
+  try {
+    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleanText);
+  } catch (e) {
+    console.error('JSON解析失败:', text);
+    throw new Error('AI返回格式错误');
+  }
+}
+
+async function callWithFallback(prompt) {
+  const preferred = await getPreferredModel();
+
+  if (preferred === 'gemini') {
+    try {
+      return await callGeminiAPI(prompt);
+    } catch (err) {
+      if (!shouldFallback(err) && GOOGLE_API_KEY) {
+        throw err;
+      }
+      return await callQwenAPI(prompt);
+    }
+  }
+
+  try {
+    return await callQwenAPI(prompt);
+  } catch (err) {
+    if (!shouldFallback(err) && QWEN_API_KEY) {
+      throw err;
+    }
+    return await callGeminiAPI(prompt);
+  }
+}
+
+async function callWithFallbackStream(prompt, onChunk) {
+  const preferred = await getPreferredModel();
+
+  if (preferred === 'gemini') {
+    try {
+      const result = await callGeminiAPI(prompt);
+      if (onChunk) {
+        const fullText = JSON.stringify(result, null, 2);
+        let index = 0;
+        const interval = setInterval(() => {
+          if (index >= fullText.length) {
+            clearInterval(interval);
+            return;
+          }
+          const chunk = fullText.slice(index, index + 10);
+          index += 10;
+          onChunk(chunk, fullText.slice(0, index));
+        }, 20);
+      }
+      return result;
+    } catch (err) {
+      if (!shouldFallback(err) && GOOGLE_API_KEY) {
+        throw err;
+      }
+      return await callQwenAPIStream(prompt, onChunk);
+    }
+  }
+
+  try {
+    return await callQwenAPIStream(prompt, onChunk);
+  } catch (err) {
+    if (!shouldFallback(err) && QWEN_API_KEY) {
+      throw err;
+    }
+    const result = await callGeminiAPI(prompt);
+    if (onChunk) {
+      const fullText = JSON.stringify(result, null, 2);
+      let index = 0;
+      const interval = setInterval(() => {
+        if (index >= fullText.length) {
+          clearInterval(interval);
+          return;
+        }
+        const chunk = fullText.slice(index, index + 10);
+        index += 10;
+        onChunk(chunk, fullText.slice(0, index));
+      }, 20);
+    }
+    return result;
+  }
+}
+
 /**
  * 调用通义千问 API (非流式)
  */
@@ -88,14 +241,14 @@ async function callQwenAPI(prompt) {
     throw new Error('未配置QWEN_API_KEY,请在.env文件中设置VITE_QWEN_API_KEY');
   }
 
-  const response = await fetch(API_ENDPOINT, {
+  const response = await fetch(QWEN_API_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${QWEN_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'qwen-plus',
+      model: QWEN_MODEL,
       messages: [
         { role: 'user', content: prompt }
       ],
@@ -134,14 +287,14 @@ async function callQwenAPIStream(prompt, onChunk) {
     throw new Error('未配置QWEN_API_KEY,请在.env文件中设置VITE_QWEN_API_KEY');
   }
 
-  const response = await fetch(API_ENDPOINT, {
+  const response = await fetch(QWEN_API_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${QWEN_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'qwen-plus',
+      model: QWEN_MODEL,
       messages: [
         { role: 'user', content: prompt }
       ],
@@ -228,7 +381,7 @@ export async function getSentenceAnalysis(sentenceId, sentenceText) {
   // L3: 调用AI
   console.log('🔄 调用AI分析:', sentenceId);
   const prompt = SENTENCE_ANALYSIS_PROMPT(sentenceText);
-  const result = await callQwenAPI(prompt);
+  const result = await callWithFallback(prompt);
 
   // 包装完整数据
   const analysisData = {
@@ -290,7 +443,7 @@ export async function getSentenceAnalysisStream(sentenceId, sentenceText, onChun
   // L3: 调用AI (流式)
   console.log('🔄 调用AI分析(流式):', sentenceId);
   const prompt = SENTENCE_ANALYSIS_PROMPT(sentenceText);
-  const result = await callQwenAPIStream(prompt, onChunk);
+  const result = await callWithFallbackStream(prompt, onChunk);
 
   // 包装完整数据
   const analysisData = {
@@ -351,7 +504,7 @@ export async function getWordAnalysis(word, context = '') {
     // L3: 调用AI (缓存未命中时才调用，节省 API 成本)
     console.log('🔄 调用AI分析单词:', cleanWord);
     const prompt = WORD_ANALYSIS_PROMPT(word, context);
-    const result = await callQwenAPI(prompt);
+    const result = await callWithFallback(prompt);
 
     // 包装完整数据，使用默认值防止 undefined
     const wordData = {
@@ -405,4 +558,12 @@ export async function getCacheStats() {
     words: wordCacheCount,
     total: sentenceCacheCount + wordCacheCount
   };
+}
+
+export async function getAiModelPreference() {
+  return await getPreferredModel();
+}
+
+export async function setAiModelPreference(model) {
+  return await setPreferredModel(model);
 }

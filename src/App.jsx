@@ -5,6 +5,7 @@ import { db } from './db/schema.js';
 import { parseArticle } from './utils/textParser.js';
 import { tts, loadTTSSettings } from './utils/tts.js';
 import { recordActivity } from './utils/statistics.js';
+import { getAiModelPreference, setAiModelPreference } from './utils/ai.js';
 import { isGitHubConfigured, syncArticles, getArticlesSyncStatus } from './utils/github.js';
 import Reader from './components/Reader.jsx';
 import VocabularyList from './components/VocabularyList.jsx';
@@ -25,6 +26,7 @@ function App() {
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState(null);
   const [articlesSyncStatus, setArticlesSyncStatus] = useState(null);
+  const [aiModel, setAiModel] = useState('qwen');
 
   // 粘贴弹窗状态
   const [showPasteModal, setShowPasteModal] = useState(false);
@@ -39,7 +41,17 @@ function App() {
     initializeTTSSettings();
     runArticleSync({ silent: true });
     refreshArticlesSyncStatus();
+    loadAiModel();
   }, []);
+
+  async function loadAiModel() {
+    try {
+      const model = await getAiModelPreference();
+      setAiModel(model);
+    } catch (err) {
+      console.error('加载模型偏好失败:', err);
+    }
+  }
 
   // 初始化TTS设置
   async function initializeTTSSettings() {
@@ -404,6 +416,20 @@ function App() {
     setError(null);
   }
 
+  async function toggleAiModel() {
+    const next = aiModel === 'gemini' ? 'qwen' : 'gemini';
+    if (next === 'gemini' && !import.meta.env.VITE_GOOGLE_API_KEY) {
+      alert('未配置 VITE_GOOGLE_API_KEY，无法切换到 Gemini');
+      return;
+    }
+    if (next === 'qwen' && !import.meta.env.VITE_QWEN_API_KEY) {
+      alert('未配置 VITE_QWEN_API_KEY，无法切换到 Qwen');
+      return;
+    }
+    await setAiModelPreference(next);
+    setAiModel(next);
+  }
+
   if (loading) {
     return (
       <div className="app-loading">
@@ -455,6 +481,14 @@ function App() {
               {importing ? '导入中...' : '导入文件'}
             </button>
           </nav>
+          <button
+            className="model-toggle"
+            onClick={toggleAiModel}
+            title={`当前模型: ${aiModel === 'gemini' ? 'Gemini' : 'Qwen'}`}
+          >
+            <span className={`model-dot ${aiModel}`}></span>
+            <span className="model-text">{aiModel === 'gemini' ? 'G' : 'Q'}</span>
+          </button>
         </div>
       </header>
 
