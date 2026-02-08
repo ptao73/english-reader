@@ -223,6 +223,19 @@ async function getArticlesContent(token, gistId) {
     throw new Error('文章文件不存在');
   }
 
+  if (file.truncated && file.raw_url) {
+    const rawResponse = await fetch(file.raw_url, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    if (!rawResponse.ok) {
+      throw new Error('获取文章 Gist 原始内容失败');
+    }
+    const rawText = await rawResponse.text();
+    return JSON.parse(rawText);
+  }
+
   return JSON.parse(file.content);
 }
 
