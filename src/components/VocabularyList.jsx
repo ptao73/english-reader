@@ -100,14 +100,23 @@ export default function VocabularyList({ onBack }) {
         setSyncProgress(`正在导入 ${result.newToLocal.length} 个新词汇...`);
 
         for (const word of result.newToLocal) {
-          if (word._needUpdate && word._localId) {
+          const { _needUpdate, _localId, ...cleanWord } = word;
+
+          // 检查本地是否已存在相同单词
+          const existingWord = await db.vocabulary.where('word').equals(cleanWord.word).first();
+
+          if (existingWord) {
             // 更新现有记录
-            const { _needUpdate, _localId, ...cleanWord } = word;
+            await db.vocabulary.update(existingWord.id, {
+              ...cleanWord,
+              updatedAt: new Date().toISOString()
+            });
+          } else if (_needUpdate && _localId) {
+            // 更新指定ID的记录
             await db.vocabulary.update(_localId, cleanWord);
           } else {
-            // 添加新记录
-            const { _needUpdate, _localId, ...cleanWord } = word;
-            await db.vocabulary.add({
+            // 添加新记录 - 使用 put 避免主键冲突
+            await db.vocabulary.put({
               ...cleanWord,
               createdAt: cleanWord.createdAt || new Date().toISOString(),
               updatedAt: new Date().toISOString()
