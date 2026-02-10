@@ -281,6 +281,36 @@
   margin-bottom: 12px;
 }
 
+/* 预缓存进度 */
+.precache-status {
+  font-size: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.precache-status.caching {
+  color: var(--color-primary);
+}
+
+.precache-status.done {
+  color: #34C759;
+}
+
+.precache-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: precache-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes precache-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
 .card-progress {
   margin-bottom: 12px;
 }

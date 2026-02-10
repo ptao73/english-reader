@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { db } from './db/schema.js';
 import { parseArticle } from './utils/textParser.js';
 import { tts, loadTTSSettings } from './utils/tts.js';
@@ -6,6 +6,7 @@ import { recordActivity } from './utils/statistics.js';
 import { getAiModelPreference, setAiModelPreference } from './utils/ai.js';
 import { fetchModelStatus } from './utils/modelStatus.js';
 import { isGitHubConfigured, syncArticles, getArticlesSyncStatus } from './utils/github.js';
+import { preCacheArticle } from './utils/preCache.js';
 import Reader from './components/Reader.jsx';
 import Icon from './components/Icon.jsx';
 import './App.css';
@@ -34,6 +35,27 @@ function App() {
 
   const fileInputRef = useRef(null);
   const syncInFlightRef = useRef(false);
+
+  // 预缓存状态: { [articleId]: { cached, total } }
+  const [preCacheProgress, setPreCacheProgress] = useState({});
+  const preCacheAbortRef = useRef(null);
+
+  const startPreCache = useCallback((article) => {
+    // 取消上一个预缓存任务
+    preCacheAbortRef.current?.abort();
+    const controller = new AbortController();
+    preCacheAbortRef.current = controller;
+
+    preCacheArticle(article, {
+      signal: controller.signal,
+      onProgress: ({ cached, total }) => {
+        setPreCacheProgress(prev => ({
+          ...prev,
+          [article.id]: { cached, total }
+        }));
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     loadArticles();
@@ -254,6 +276,9 @@ function App() {
     setUrlDetected(false);
     runArticleSync({ silent: true });
     refreshArticlesSyncStatus();
+
+    // 后台预缓存所有句子翻译
+    startPreCache(article);
   }
 
   /**
@@ -367,6 +392,9 @@ function App() {
       setPasteText('');
       runArticleSync({ silent: true });
       refreshArticlesSyncStatus();
+
+      // 后台预缓存所有句子翻译
+      startPreCache(article);
     } catch (err) {
       console.error('导入失败:', err);
       setError('导入失败: ' + err.message);
@@ -581,6 +609,7 @@ function App() {
           <ArticleList
             articles={articles}
             syncStatus={articlesSyncStatus}
+            preCacheProgress={preCacheProgress}
             onRead={startReading}
             onDelete={deleteArticle}
           />
@@ -640,7 +669,7 @@ function App() {
 /**
  * 文章列表组件
  */
-function ArticleList({ articles, syncStatus, onRead, onDelete }) {
+function ArticleList({ articles, syncStatus, preCacheProgress, onRead, onDelete }) {
   const [progressMap, setProgressMap] = useState({});
 
   useEffect(() => {
@@ -696,6 +725,9 @@ function ArticleList({ articles, syncStatus, onRead, onDelete }) {
       <div className="list-grid">
         {articles.map(article => {
           const progress = progressMap[article.id];
+          const cache = preCacheProgress?.[article.id];
+          const isCaching = cache && cache.cached < cache.total;
+          const isCacheDone = cache && cache.cached >= cache.total;
           return (
             <div key={article.id} className="article-card">
               <div className="card-header">
@@ -715,6 +747,18 @@ function ArticleList({ articles, syncStatus, onRead, onDelete }) {
                 <span>•</span>
                 <span>日期 {new Date(article.createdAt).toLocaleDateString()}</span>
               </div>
+
+              {isCaching && (
+                <div className="precache-status caching">
+                  <span className="precache-dot"></span>
+                  翻译中 {cache.cached}/{cache.total}
+                </div>
+              )}
+              {isCacheDone && (
+                <div className="precache-status done">
+                  翻译已就绪
+                </div>
+              )}
 
               {progress && (
                 <div className="card-progress">

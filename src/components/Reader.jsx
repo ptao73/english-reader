@@ -4,6 +4,7 @@ import { tts } from '../utils/tts.js';
 import { getSentenceAnalysis, getWordAnalysis } from '../utils/ai.js';
 import { recordActivity } from '../utils/statistics.js';
 import { initializeWordSM2 } from '../utils/spacedRepetition.js';
+import { preCacheArticle, getArticleCacheProgress } from '../utils/preCache.js';
 import SentenceCard from './SentenceCard.jsx';
 import './Reader.css';
 
@@ -36,6 +37,10 @@ export default function Reader({ article, onBack }) {
   // 单词详情弹窗
   const [wordDetail, setWordDetail] = useState(null);
 
+  // 后台预缓存
+  const [preCacheStatus, setPreCacheStatus] = useState(null);
+  const preCacheAbortRef = useRef(null);
+
   // 加载阅读进度
   useEffect(() => {
     loadProgress();
@@ -48,6 +53,41 @@ export default function Reader({ article, onBack }) {
       saveProgress();
     }
   }, [currentIndex, isProgressLoaded]);
+
+  // 打开文章时，检查并启动后台预缓存
+  useEffect(() => {
+    if (!isProgressLoaded) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const progress = await getArticleCacheProgress(article);
+      if (cancelled) return;
+
+      if (progress.cached < progress.total) {
+        setPreCacheStatus(progress);
+
+        preCacheAbortRef.current?.abort();
+        const controller = new AbortController();
+        preCacheAbortRef.current = controller;
+
+        await preCacheArticle(article, {
+          signal: controller.signal,
+          startFrom: currentIndex,
+          onProgress: (p) => {
+            if (!cancelled) setPreCacheStatus(p);
+          }
+        }).catch(() => {});
+      } else {
+        setPreCacheStatus(progress);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      preCacheAbortRef.current?.abort();
+    };
+  }, [article.id, isProgressLoaded]);
 
   /**
    * 预加载指定句子的分析
@@ -360,16 +400,16 @@ export default function Reader({ article, onBack }) {
               <span>进度: {progress.percentage}%</span>
             </>
           )}
-          {isPrefetching && (
+          {preCacheStatus && preCacheStatus.cached < preCacheStatus.total && (
             <>
               <span>•</span>
-              <span className="prefetch-status">预加载中...</span>
+              <span className="prefetch-status">翻译中 {preCacheStatus.cached}/{preCacheStatus.total}</span>
             </>
           )}
-          {currentCachedAnalysis && !isPrefetching && (
+          {preCacheStatus && preCacheStatus.cached >= preCacheStatus.total && (
             <>
               <span>•</span>
-              <span className="prefetch-ready">已就绪</span>
+              <span className="prefetch-ready">翻译已就绪</span>
             </>
           )}
         </div>
