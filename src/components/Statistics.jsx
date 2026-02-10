@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAllStats, getRecentDailyStats } from '../utils/statistics.js';
+import Icon from './Icon.jsx';
 import './Statistics.css';
 
 /**
@@ -50,21 +51,21 @@ export default function Statistics({ onBack }) {
   return (
     <div className="statistics-page">
       {/* 顶部工具栏 */}
-      <div className="stats-toolbar">
-        <button className="btn-back" onClick={onBack}>
-          ← 返回
-        </button>
-        <h1>📊 学习统计</h1>
-        <button className="btn-refresh" onClick={loadStats}>
-          🔄 刷新
-        </button>
-      </div>
+        <div className="stats-toolbar">
+          <button className="btn-back" onClick={onBack}>
+            ← 返回
+          </button>
+          <h1>学习统计</h1>
+          <button className="btn-refresh" onClick={loadStats} aria-label="刷新">
+            <Icon name="refresh" size={18} />
+          </button>
+        </div>
 
       {/* 统计卡片区域 */}
       <div className="stats-grid">
         {/* 阅读统计 */}
         <div className="stats-card reading-card">
-          <h2>📖 阅读统计</h2>
+          <h2>阅读统计</h2>
           <div className="stats-items">
             <div className="stat-item">
               <span className="stat-value">{stats?.reading.totalArticles || 0}</span>
@@ -83,7 +84,7 @@ export default function Statistics({ onBack }) {
 
         {/* 词汇统计 */}
         <div className="stats-card vocabulary-card">
-          <h2>📚 词汇统计</h2>
+          <h2>词汇统计</h2>
           <div className="stats-items">
             <div className="stat-item">
               <span className="stat-value">{stats?.vocabulary.totalWords || 0}</span>
@@ -120,7 +121,7 @@ export default function Statistics({ onBack }) {
 
         {/* 复习统计 */}
         <div className="stats-card review-card">
-          <h2>🔄 复习统计</h2>
+          <h2>复习统计</h2>
           <div className="stats-items">
             <div className="stat-item">
               <span className="stat-value">{stats?.review.totalReviews || 0}</span>
@@ -149,7 +150,7 @@ export default function Statistics({ onBack }) {
 
       {/* 最近7天趋势 */}
       <div className="daily-trend">
-        <h2>📈 最近7天活动</h2>
+        <h2>最近7天活动</h2>
         <div className="trend-chart">
           {dailyStats.map((day, index) => {
             const maxValue = Math.max(
@@ -178,36 +179,36 @@ export default function Statistics({ onBack }) {
 
       {/* 学习提示 */}
       <div className="learning-tips">
-        <h2>💡 学习建议</h2>
+        <h2>学习建议</h2>
         <div className="tips-content">
           {stats?.vocabulary.dueForReview > 0 && (
             <div className="tip warning">
-              📌 您有 <strong>{stats.vocabulary.dueForReview}</strong> 个单词待复习，建议现在开始复习!
+              您有 <strong>{stats.vocabulary.dueForReview}</strong> 个单词待复习，建议现在开始复习!
             </div>
           )}
           {stats?.vocabulary.masteredPercentage < 30 && stats?.vocabulary.totalWords > 10 && (
             <div className="tip info">
-              📚 继续加油! 多使用复习功能可以帮助记忆更多单词。
+              继续加油! 多使用复习功能可以帮助记忆更多单词。
             </div>
           )}
           {stats?.review.accuracy < 60 && stats?.review.totalReviews > 20 && (
             <div className="tip warning">
-              🎯 正确率偏低，建议放慢复习节奏，确保理解每个单词。
+              正确率偏低，建议放慢复习节奏，确保理解每个单词。
             </div>
           )}
           {stats?.reading.totalArticles === 0 && (
             <div className="tip info">
-              🚀 开始导入第一篇文章，开启学习之旅吧!
+              开始导入第一篇文章，开启学习之旅吧!
             </div>
           )}
           {stats?.vocabulary.totalWords === 0 && stats?.reading.totalArticles > 0 && (
             <div className="tip info">
-              💡 在阅读时点击不认识的单词，将它们添加到词汇表中。
+              在阅读时点击不认识的单词，将它们添加到词汇表中。
             </div>
           )}
           {!stats?.vocabulary.dueForReview && stats?.vocabulary.totalWords > 0 && stats?.review.totalReviews > 0 && (
             <div className="tip success">
-              ✨ 太棒了! 所有单词都已复习完毕，继续保持!
+              所有单词都已复习完毕，继续保持!
             </div>
           )}
         </div>

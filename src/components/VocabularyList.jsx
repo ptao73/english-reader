@@ -8,6 +8,7 @@ import {
 } from '../utils/github.js';
 import { getDueWords } from '../utils/spacedRepetition.js';
 import ReviewQuiz from './ReviewQuiz.jsx';
+import Icon from './Icon.jsx';
 import './VocabularyList.css';
 
 /**
@@ -63,7 +64,7 @@ export default function VocabularyList({ onBack }) {
 
   // 检查同步状态
   async function checkSyncStatus() {
-    if (isGitHubConfigured()) {
+    if (await isGitHubConfigured()) {
       try {
         const status = await getSyncStatus();
         setSyncStatus(status);
@@ -78,8 +79,8 @@ export default function VocabularyList({ onBack }) {
 
   // 执行同步
   async function handleSync() {
-    if (!isGitHubConfigured()) {
-      alert('请先在 .env 文件中配置 VITE_GITHUB_TOKEN\n\n获取方式:\n1. 访问 https://github.com/settings/tokens\n2. 生成新 Token，勾选 gist 权限\n3. 复制 Token 到 .env 文件');
+    if (!(await isGitHubConfigured())) {
+      alert('请先在 Vercel 环境变量中配置 GITHUB_TOKEN\n\n获取方式:\n1. 访问 https://github.com/settings/tokens\n2. 生成新 Token，勾选 gist 权限\n3. 在 Vercel 项目设置中添加 GITHUB_TOKEN 环境变量');
       return;
     }
 
@@ -224,7 +225,7 @@ export default function VocabularyList({ onBack }) {
             disabled={words.length < 4}
             title={words.length < 4 ? '至少需要4个单词才能开始复习' : '开始复习'}
           >
-            🎯 开始复习
+            开始复习
             {dueCount > 0 && <span className="due-badge">{dueCount}</span>}
           </button>
 
@@ -238,7 +239,7 @@ export default function VocabularyList({ onBack }) {
             {syncing ? (
               <>{syncProgress || '同步中...'}</>
             ) : (
-              <>☁️ 云端同步</>
+              <>云端同步</>
             )}
           </button>
           {syncStatus?.lastSync && (
@@ -302,7 +303,9 @@ export default function VocabularyList({ onBack }) {
         </div>
       ) : words.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📝</div>
+          <div className="empty-icon">
+            <Icon name="list" size={56} />
+          </div>
           <h2>还没有收藏单词</h2>
           <p>在阅读文章时点击单词即可收藏</p>
         </div>
@@ -319,8 +322,9 @@ export default function VocabularyList({ onBack }) {
                 <button
                   className="btn-speak-mini"
                   onClick={e => { e.stopPropagation(); speakWord(word.word); }}
+                  aria-label="朗读单词"
                 >
-                  🔊
+                  <Icon name="speaker" size={18} />
                 </button>
               </div>
               {word.phonetic && (
@@ -369,9 +373,13 @@ function WordDetailModal({ word, onClose, onToggleMastered, onDelete, onSpeak })
         <div className="modal-header">
           <div className="word-title">
             <h2>{word.word}</h2>
-            <button className="btn-speak" onClick={onSpeak}>🔊</button>
+            <button className="btn-speak" onClick={onSpeak} aria-label="朗读单词">
+              <Icon name="speaker" size={18} />
+            </button>
           </div>
-          <button className="btn-close" onClick={onClose}>✕</button>
+          <button className="btn-close" onClick={onClose} aria-label="关闭">
+            <Icon name="close" size={18} />
+          </button>
         </div>
 
         {word.phonetic && (
@@ -381,7 +389,7 @@ function WordDetailModal({ word, onClose, onToggleMastered, onDelete, onSpeak })
         {/* 释义 */}
         {word.meanings?.length > 0 && (
           <section className="word-section">
-            <h4>📖 释义</h4>
+            <h4>释义</h4>
             <div className="meanings-list">
               {word.meanings.map((m, i) => (
                 <div key={i} className="meaning-item">
@@ -397,7 +405,7 @@ function WordDetailModal({ word, onClose, onToggleMastered, onDelete, onSpeak })
         {/* 词源 */}
         {word.etymology && Object.values(word.etymology).some(v => v) && (
           <section className="word-section">
-            <h4>🔤 词源</h4>
+            <h4>词源</h4>
             <div className="etymology">
               {word.etymology.prefix && <span className="etym-part">前缀: {word.etymology.prefix}</span>}
               {word.etymology.root && <span className="etym-part">词根: {word.etymology.root}</span>}
@@ -410,7 +418,7 @@ function WordDetailModal({ word, onClose, onToggleMastered, onDelete, onSpeak })
         {/* 例句 */}
         {word.examples?.length > 0 && (
           <section className="word-section">
-            <h4>📝 例句</h4>
+            <h4>例句</h4>
             <ul className="examples-list">
               {word.examples.map((ex, i) => (
                 <li key={i}>{ex}</li>
@@ -422,7 +430,7 @@ function WordDetailModal({ word, onClose, onToggleMastered, onDelete, onSpeak })
         {/* 常见搭配 */}
         {word.collocations?.length > 0 && (
           <section className="word-section">
-            <h4>🔗 常见搭配</h4>
+            <h4>常见搭配</h4>
             <div className="collocations">
               {word.collocations.map((c, i) => (
                 <span key={i} className="collocation-tag">{c}</span>
@@ -446,7 +454,7 @@ function WordDetailModal({ word, onClose, onToggleMastered, onDelete, onSpeak })
         {/* 语境释义 */}
         {word.context && (
           <section className="word-section context-section">
-            <h4>📌 收藏语境</h4>
+            <h4>收藏语境</h4>
             <p className="context-text">"{word.context}"</p>
             {word.contextMeaning && (
               <p className="context-meaning">{word.contextMeaning}</p>
@@ -466,7 +474,7 @@ function WordDetailModal({ word, onClose, onToggleMastered, onDelete, onSpeak })
             {word.mastered ? '✓ 已掌握' : '○ 标记为已掌握'}
           </button>
           <button className="btn-delete-word" onClick={onDelete}>
-            🗑 删除
+            删除
           </button>
         </div>
 

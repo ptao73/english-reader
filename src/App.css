@@ -10,6 +10,15 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
+  padding-bottom: var(--bottom-nav-total);
+}
+
+.app.is-reading {
+  padding-bottom: var(--safe-area-bottom);
+}
+
+.app.is-reading .bottom-nav {
+  display: none;
 }
 
 /* ===== 加载状态 ===== */
@@ -52,10 +61,17 @@
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 17px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+}
+
+.logo-icon {
+  color: var(--color-primary);
 }
 
 /* 隐藏原有导航按钮 - 移到底部 */
@@ -105,8 +121,11 @@
 }
 
 .nav-item .nav-icon {
-  font-size: 24px;
-  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-item .nav-label {
@@ -161,9 +180,9 @@
   right: 16px;
   top: 50%;
   transform: translateY(-50%);
-  width: 36px;
-  height: 36px;
-  border-radius: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
   border: 1px solid var(--bg-tertiary);
   background: var(--bg-secondary);
   display: inline-flex;
@@ -244,10 +263,14 @@
 .btn-delete {
   background: none;
   border: none;
-  font-size: 20px;
-  padding: 4px 8px;
-  margin: -4px -8px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: -8px -8px -8px 0;
   opacity: 0.5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .card-meta {
@@ -304,8 +327,13 @@
 }
 
 .empty-icon {
-  font-size: 56px;
-  margin-bottom: 16px;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-state h2 {
@@ -349,9 +377,12 @@
   border: none;
   color: var(--color-error);
   font-size: 18px;
-  padding: 4px 8px;
-  min-height: auto;
-  min-width: auto;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===== 底部信息 - 隐藏 ===== */
@@ -403,16 +434,14 @@
 .paste-modal-header .btn-close {
   background: var(--bg-tertiary);
   border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 15px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
   font-size: 16px;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 30px;
-  min-width: 30px;
 }
 
 .paste-error {

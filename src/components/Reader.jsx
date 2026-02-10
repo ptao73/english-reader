@@ -33,6 +33,9 @@ export default function Reader({ article, onBack }) {
   const [savingWord, setSavingWord] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(null);
 
+  // 单词详情弹窗
+  const [wordDetail, setWordDetail] = useState(null);
+
   // 加载阅读进度
   useEffect(() => {
     loadProgress();
@@ -150,9 +153,8 @@ export default function Reader({ article, onBack }) {
       .first();
 
     if (existing) {
-      // 已存在，显示提示
-      setSaveSuccess({ word: cleanWord, isNew: false });
-      setTimeout(() => setSaveSuccess(null), 2000);
+      // 已存在，直接显示已有的单词详情
+      setWordDetail({ ...existing, isNew: false });
       return;
     }
 
@@ -186,14 +188,14 @@ export default function Reader({ article, onBack }) {
       // 记录统计: 收集单词
       await recordActivity('word_collected');
 
-      setSaveSuccess({ word: cleanWord, isNew: true });
+      // 显示单词详情弹窗
+      setWordDetail({ ...wordData, isNew: true });
       console.log('✅ 单词已保存:', cleanWord);
     } catch (err) {
       console.error('保存单词失败:', err);
       alert('保存失败: ' + err.message);
     } finally {
       setSavingWord(null);
-      setTimeout(() => setSaveSuccess(null), 2000);
     }
   }
 
@@ -267,11 +269,51 @@ export default function Reader({ article, onBack }) {
           正在分析: {savingWord}...
         </div>
       )}
-      {saveSuccess && (
-        <div className={`word-save-toast ${saveSuccess.isNew ? 'success' : 'info'}`}>
-          {saveSuccess.isNew
-            ? `✅ "${saveSuccess.word}" 已添加到词汇表`
-            : `ℹ️ "${saveSuccess.word}" 已在词汇表中`}
+
+      {/* 单词详情弹窗 */}
+      {wordDetail && (
+        <div className="word-popup-overlay" onClick={() => setWordDetail(null)}>
+          <div className="word-popup" onClick={e => e.stopPropagation()}>
+            <div className="word-popup-header">
+              <div className="word-popup-title">
+                <h3>{wordDetail.originalWord || wordDetail.word}</h3>
+                {wordDetail.phonetic && (
+                  <span className="word-popup-phonetic">{wordDetail.phonetic}</span>
+                )}
+              </div>
+              <span className={`word-popup-badge ${wordDetail.isNew ? 'new' : 'exists'}`}>
+                {wordDetail.isNew ? '已收藏' : '已在词汇表'}
+              </span>
+            </div>
+
+            {wordDetail.contextMeaning && (
+              <div className="word-popup-context-meaning">
+                {wordDetail.contextMeaning}
+              </div>
+            )}
+
+            {wordDetail.meanings && wordDetail.meanings.length > 0 && (
+              <div className="word-popup-meanings">
+                {wordDetail.meanings.map((m, i) => (
+                  <div key={i} className="word-popup-meaning">
+                    <span className="word-popup-pos">{m.pos}</span>
+                    <span className="word-popup-def">{m.def}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {wordDetail.collocations && wordDetail.collocations.length > 0 && (
+              <div className="word-popup-collocations">
+                <span className="word-popup-label">搭配</span>
+                <span>{wordDetail.collocations.join(' / ')}</span>
+              </div>
+            )}
+
+            <button className="word-popup-close" onClick={() => setWordDetail(null)}>
+              知道了
+            </button>
+          </div>
         </div>
       )}
 
@@ -321,13 +363,13 @@ export default function Reader({ article, onBack }) {
           {isPrefetching && (
             <>
               <span>•</span>
-              <span className="prefetch-status">🔄 预加载中...</span>
+              <span className="prefetch-status">预加载中...</span>
             </>
           )}
           {currentCachedAnalysis && !isPrefetching && (
             <>
               <span>•</span>
-              <span className="prefetch-ready">✓ 已就绪</span>
+              <span className="prefetch-ready">已就绪</span>
             </>
           )}
         </div>
@@ -378,7 +420,7 @@ function SentenceList({ sentences, currentIndex, onSelectSentence }) {
         className="toggle-list"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        {isExpanded ? '📖 隐藏句子列表' : '📋 显示全部句子'}
+        {isExpanded ? '隐藏句子列表' : '显示全部句子'}
       </button>
 
       {isExpanded && (

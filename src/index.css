@@ -91,7 +91,14 @@ body {
 #root {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  padding-bottom: var(--bottom-nav-total);
+}
+
+.icon {
+  display: inline-block;
+  stroke: currentColor;
+  fill: none;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 /* 隐藏滚动条但保持可滚动 */

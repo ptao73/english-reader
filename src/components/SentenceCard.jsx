@@ -244,7 +244,7 @@ export default function SentenceCard({
             onClick={revealNext}
             disabled={loading}
           >
-            {loading ? '⏳ 分析中...' : analysisReady ? '💡 查看提示' : '💡 查看提示'}
+            {loading ? '分析中...' : '查看提示'}
           </button>
         )}
       </div>
@@ -252,7 +252,7 @@ export default function SentenceCard({
       {/* 错误提示 */}
       {error && (
         <div className="error-message">
-          ❌ {error}
+          错误: {error}
           <button onClick={fetchAnalysis}>重试</button>
         </div>
       )}
@@ -270,7 +270,7 @@ export default function SentenceCard({
         <div className="analysis-section level-1">
           <div className="section-header">
             <span className="level-badge">Level 1</span>
-            <h4>💡 提示</h4>
+            <h4>提示</h4>
           </div>
           <div className="section-content hint">
             {(analysis || prefetchedAnalysis).hint}
@@ -280,7 +280,7 @@ export default function SentenceCard({
               className="btn-reveal btn-secondary"
               onClick={revealNext}
             >
-              📖 查看深度分析
+              查看深度分析
             </button>
           )}
         </div>
@@ -291,7 +291,7 @@ export default function SentenceCard({
         <div className="analysis-section level-2">
           <div className="section-header">
             <span className="level-badge">Level 2</span>
-            <h4>📖 深度分析</h4>
+            <h4>深度分析</h4>
           </div>
           <div className="section-content analysis">
             {(analysis || prefetchedAnalysis).analysis.split('\n').map((line, i) => (
@@ -303,7 +303,7 @@ export default function SentenceCard({
               className="btn-reveal btn-tertiary"
               onClick={revealNext}
             >
-              🈯 查看中文翻译
+              查看中文翻译
             </button>
           )}
         </div>
@@ -314,7 +314,7 @@ export default function SentenceCard({
         <div className="analysis-section level-3">
           <div className="section-header">
             <span className="level-badge">Level 3</span>
-            <h4>🈯 中文翻译</h4>
+            <h4>中文翻译</h4>
           </div>
           <div className="section-content translation">
             {(analysis || prefetchedAnalysis).zh}
@@ -323,7 +323,7 @@ export default function SentenceCard({
             className="btn-reset"
             onClick={reset}
           >
-            🔄 重新思考
+            重新思考
           </button>
         </div>
       )}

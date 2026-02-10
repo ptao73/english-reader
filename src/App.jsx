@@ -5,11 +5,12 @@ import { db } from './db/schema.js';
 import { parseArticle } from './utils/textParser.js';
 import { tts, loadTTSSettings } from './utils/tts.js';
 import { recordActivity } from './utils/statistics.js';
-import { getAiModelPreference, setAiModelPreference } from './utils/ai.js';
+import { getAiModelPreference, setAiModelPreference, fetchModelStatus } from './utils/ai.js';
 import { isGitHubConfigured, syncArticles, getArticlesSyncStatus } from './utils/github.js';
 import Reader from './components/Reader.jsx';
 import VocabularyList from './components/VocabularyList.jsx';
 import Statistics from './components/Statistics.jsx';
+import Icon from './components/Icon.jsx';
 import './App.css';
 
 // 配置 PDF.js worker
@@ -87,7 +88,7 @@ function App() {
   }
 
   async function runArticleSync({ silent = false } = {}) {
-    if (!isGitHubConfigured()) return;
+    if (!(await isGitHubConfigured())) return;
     if (syncInFlightRef.current) return;
     syncInFlightRef.current = true;
 
@@ -143,7 +144,7 @@ function App() {
   }
 
   async function refreshArticlesSyncStatus() {
-    if (!isGitHubConfigured()) {
+    if (!(await isGitHubConfigured())) {
       setArticlesSyncStatus({ configured: false });
       return;
     }
@@ -418,12 +419,13 @@ function App() {
 
   async function toggleAiModel() {
     const next = aiModel === 'gemini' ? 'qwen' : 'gemini';
-    if (next === 'gemini' && !import.meta.env.VITE_GOOGLE_API_KEY) {
-      alert('未配置 VITE_GOOGLE_API_KEY，无法切换到 Gemini');
+    const status = await fetchModelStatus();
+    if (next === 'gemini' && !status.gemini) {
+      alert('服务端未配置 GOOGLE_API_KEY，无法切换到 Gemini');
       return;
     }
-    if (next === 'qwen' && !import.meta.env.VITE_QWEN_API_KEY) {
-      alert('未配置 VITE_QWEN_API_KEY，无法切换到 Qwen');
+    if (next === 'qwen' && !status.qwen) {
+      alert('服务端未配置 QWEN_API_KEY，无法切换到 Qwen');
       return;
     }
     await setAiModelPreference(next);
@@ -440,7 +442,7 @@ function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${view === 'reading' ? 'is-reading' : ''}`}>
       {/* 隐藏的文件输入 */}
       <input
         ref={fileInputRef}
@@ -453,7 +455,10 @@ function App() {
       {/* 顶部导航栏 */}
       <header className="app-header">
         <div className="header-content">
-          <h1 className="logo">📖 English Reader</h1>
+          <h1 className="logo">
+            <Icon name="book" size={18} className="logo-icon" />
+            English Reader
+          </h1>
           <nav className="nav">
             <button
               className={view === 'list' && !showPasteModal ? 'active' : ''}
@@ -465,13 +470,13 @@ function App() {
               className={view === 'vocabulary' ? 'active' : ''}
               onClick={() => { setView('vocabulary'); closePasteModal(); }}
             >
-              📚 词汇表
+              词汇表
             </button>
             <button
               className={view === 'statistics' ? 'active' : ''}
               onClick={() => { setView('statistics'); closePasteModal(); }}
             >
-              📊 统计
+              统计
             </button>
             <button
               className={showPasteModal ? 'active' : ''}
@@ -485,6 +490,7 @@ function App() {
             className="model-toggle"
             onClick={toggleAiModel}
             title={`当前模型: ${aiModel === 'gemini' ? 'Gemini' : 'Qwen'}`}
+            aria-label={`切换模型，当前 ${aiModel === 'gemini' ? 'Gemini' : 'Qwen'}`}
           >
             <span className={`model-dot ${aiModel}`}></span>
             <span className="model-text">{aiModel === 'gemini' ? 'G' : 'Q'}</span>
@@ -497,13 +503,15 @@ function App() {
         <div className="paste-modal-overlay" onClick={closePasteModal}>
           <div className="paste-modal" onClick={e => e.stopPropagation()}>
             <div className="paste-modal-header">
-              <h2>📝 粘贴文章</h2>
-              <button className="btn-close" onClick={closePasteModal}>✕</button>
+              <h2>粘贴文章</h2>
+              <button className="btn-close" onClick={closePasteModal} aria-label="关闭">
+                <Icon name="close" size={18} />
+              </button>
             </div>
 
             {error && (
               <div className="paste-error">
-                ❌ {error}
+                错误: {error}
               </div>
             )}
 
@@ -535,14 +543,14 @@ function App() {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={importing}
                 >
-                  📁 选择文件
+                  选择文件
                 </button>
                 <button
                   className="btn-start-reading"
                   onClick={handlePasteImport}
                   disabled={importing || !pasteText.trim()}
                 >
-                  {importing ? '导入中...' : '🚀 开始阅读'}
+                  {importing ? '导入中...' : '开始阅读'}
                 </button>
               </div>
             </div>
@@ -553,8 +561,10 @@ function App() {
       {/* 错误提示（非弹窗状态） */}
       {error && !showPasteModal && (
         <div className="app-error">
-          ❌ {error}
-          <button onClick={() => setError(null)}>✕</button>
+          错误: {error}
+          <button onClick={() => setError(null)} aria-label="关闭">
+            <Icon name="close" size={18} />
+          </button>
         </div>
       )}
 
@@ -591,14 +601,14 @@ function App() {
             className={`nav-item ${view === 'list' ? 'active' : ''}`}
             onClick={() => { setView('list'); closePasteModal(); }}
           >
-            <span className="nav-icon">📚</span>
+            <span className="nav-icon"><Icon name="book" size={20} /></span>
             <span className="nav-label">文章</span>
           </button>
           <button
             className={`nav-item ${view === 'vocabulary' ? 'active' : ''}`}
             onClick={() => { setView('vocabulary'); closePasteModal(); }}
           >
-            <span className="nav-icon">📝</span>
+            <span className="nav-icon"><Icon name="list" size={20} /></span>
             <span className="nav-label">词汇</span>
           </button>
           <button
@@ -606,14 +616,14 @@ function App() {
             onClick={handleImportClick}
             disabled={importing}
           >
-            <span className="nav-icon">➕</span>
+            <span className="nav-icon"><Icon name="plus" size={20} /></span>
             <span className="nav-label">导入</span>
           </button>
           <button
             className={`nav-item ${view === 'statistics' ? 'active' : ''}`}
             onClick={() => { setView('statistics'); closePasteModal(); }}
           >
-            <span className="nav-icon">📊</span>
+            <span className="nav-icon"><Icon name="chart" size={20} /></span>
             <span className="nav-label">统计</span>
           </button>
         </div>
@@ -646,9 +656,11 @@ function ArticleList({ articles, syncStatus, onRead, onDelete }) {
   if (articles.length === 0) {
     return (
       <div className="empty-state">
-        <div className="empty-icon">📚</div>
+        <div className="empty-icon">
+          <Icon name="book" size={56} />
+        </div>
         <h2>还没有文章</h2>
-        <p>点击右上角"导入文件"开始学习吧!</p>
+        <p>点击底部“导入”开始学习吧!</p>
       </div>
     );
   }
@@ -656,7 +668,7 @@ function ArticleList({ articles, syncStatus, onRead, onDelete }) {
   return (
     <div className="article-list">
       <div className="list-header">
-        <h2>📚 我的文章</h2>
+        <h2>我的文章</h2>
         <span className="count">{articles.length} 篇</span>
       </div>
       {syncStatus && (
@@ -687,15 +699,16 @@ function ArticleList({ articles, syncStatus, onRead, onDelete }) {
                   className="btn-delete"
                   onClick={() => onDelete(article.id)}
                   title="删除"
+                  aria-label="删除"
                 >
-                  🗑
+                  <Icon name="trash" size={18} />
                 </button>
               </div>
 
               <div className="card-meta">
-                <span>📝 {article.totalSentences} 句</span>
+                <span>句数 {article.totalSentences}</span>
                 <span>•</span>
-                <span>📅 {new Date(article.createdAt).toLocaleDateString()}</span>
+                <span>日期 {new Date(article.createdAt).toLocaleDateString()}</span>
               </div>
 
               {progress && (
@@ -716,7 +729,7 @@ function ArticleList({ articles, syncStatus, onRead, onDelete }) {
                 className="btn-read"
                 onClick={() => onRead(article)}
               >
-                {progress?.percentage > 0 ? '📖 继续阅读' : '🚀 开始阅读'}
+                {progress?.percentage > 0 ? '继续阅读' : '开始阅读'}
               </button>
             </div>
           );

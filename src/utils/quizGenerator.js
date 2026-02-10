@@ -258,14 +258,14 @@ export function getQuizTypeName(type) {
 export function getQuizTypeIcon(type) {
   switch (type) {
     case QuizTypes.ZH_TO_EN:
-      return '🇨🇳→🇺🇸';
+      return '';
     case QuizTypes.EN_TO_ZH:
-      return '🇺🇸→🇨🇳';
+      return '';
     case QuizTypes.FILL_BLANK:
-      return '📝';
+      return '';
     case QuizTypes.CONTEXT:
-      return '📖';
+      return '';
     default:
-      return '❓';
+      return '';
   }
 }

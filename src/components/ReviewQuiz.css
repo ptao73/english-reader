@@ -143,9 +143,9 @@
 .quiz-header .btn-close {
   background: var(--bg-tertiary);
   border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 15px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
   font-size: 16px;
   color: var(--text-secondary);
   display: flex;
@@ -183,11 +183,13 @@
 .btn-speak-mini {
   background: transparent;
   border: none;
-  font-size: 16px;
-  padding: 4px;
-  min-height: 32px;
-  min-width: 32px;
+  padding: 0;
+  width: 44px;
+  height: 44px;
   vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .question-text {
@@ -345,7 +347,7 @@
 }
 
 .complete-icon {
-  font-size: 56px;
+  font-size: 28px;
   margin-bottom: 16px;
 }
 

@@ -6,7 +6,7 @@
 .reader {
   min-height: 100vh;
   background: var(--bg-primary);
-  padding-bottom: 100px;
+  padding-bottom: calc(var(--safe-area-bottom, 0px) + 24px);
 }
 
 /* 保存单词提示 */
@@ -45,6 +45,137 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* 单词详情弹窗 */
+.word-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 600;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.word-popup {
+  background: var(--bg-primary);
+  width: 100%;
+  max-width: 500px;
+  border-radius: 16px 16px 0 0;
+  padding: 20px 16px calc(var(--safe-area-bottom, 0px) + 16px);
+  animation: slideUp 0.3s ease;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.word-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.word-popup-title h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.word-popup-phonetic {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.word-popup-badge {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.word-popup-badge.new {
+  background: var(--color-success);
+  color: white;
+}
+
+.word-popup-badge.exists {
+  background: var(--color-info);
+  color: white;
+}
+
+.word-popup-context-meaning {
+  font-size: 15px;
+  color: var(--color-primary);
+  font-weight: 500;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.word-popup-meanings {
+  margin-bottom: 12px;
+}
+
+.word-popup-meaning {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.word-popup-pos {
+  color: var(--text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 28px;
+}
+
+.word-popup-def {
+  color: var(--text-primary);
+}
+
+.word-popup-collocations {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.word-popup-label {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.word-popup-close {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.word-popup-close:active {
+  opacity: 0.8;
+}
+
 /* 工具栏 */
 .reader-toolbar {
   position: sticky;
@@ -66,9 +197,11 @@
   font-size: 16px;
   font-weight: 500;
   padding: 8px 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .toolbar-controls {

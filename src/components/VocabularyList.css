@@ -204,8 +204,13 @@
 }
 
 .empty-icon {
-  font-size: 56px;
-  margin-bottom: 16px;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-state h2 {
@@ -264,11 +269,13 @@
 .btn-speak-mini {
   background: none;
   border: none;
-  font-size: 16px;
-  padding: 4px;
-  min-height: 32px;
-  min-width: 32px;
+  padding: 0;
+  width: 44px;
+  height: 44px;
   opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .vocab-phonetic {
@@ -348,10 +355,10 @@
 .btn-speak {
   background: var(--bg-tertiary);
   border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 18px;
-  font-size: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -364,9 +371,9 @@
 .btn-close {
   background: var(--bg-tertiary);
   border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 15px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
   font-size: 16px;
   color: var(--text-secondary);
   display: flex;

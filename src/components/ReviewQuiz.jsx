@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getDueWords, updateWordReview, getWordProgress } from '../utils/spacedRepetition.js';
-import { generateQuizBatch, getQuizTypeName, getQuizTypeIcon } from '../utils/quizGenerator.js';
+import { generateQuizBatch, getQuizTypeName } from '../utils/quizGenerator.js';
 import { tts } from '../utils/tts.js';
+import Icon from './Icon.jsx';
 import './ReviewQuiz.css';
 
 /**
@@ -112,7 +113,7 @@ export default function ReviewQuiz({ onClose, onComplete }) {
       <div className="review-quiz-overlay">
         <div className="review-quiz-panel">
           <div className="quiz-error">
-            <div className="error-icon">📭</div>
+            <div className="error-icon">!</div>
             <h2>{error}</h2>
             <p>继续阅读并收集更多单词，或等待复习时间到达。</p>
             <button className="btn-close-quiz" onClick={onClose}>
@@ -128,13 +129,14 @@ export default function ReviewQuiz({ onClose, onComplete }) {
   if (quizComplete) {
     const correctCount = results.filter(r => r.isCorrect).length;
     const accuracy = Math.round((correctCount / results.length) * 100);
+    const completionLabel = accuracy >= 80 ? '优秀' : accuracy >= 60 ? '良好' : '继续努力';
 
     return (
       <div className="review-quiz-overlay">
         <div className="review-quiz-panel">
           <div className="quiz-complete">
             <div className="complete-icon">
-              {accuracy >= 80 ? '🎉' : accuracy >= 60 ? '👍' : '💪'}
+              {completionLabel}
             </div>
             <h2>复习完成!</h2>
 
@@ -193,12 +195,14 @@ export default function ReviewQuiz({ onClose, onComplete }) {
               />
             </div>
           </div>
-          <button className="btn-close" onClick={onClose}>✕</button>
+          <button className="btn-close" onClick={onClose} aria-label="关闭">
+            <Icon name="close" size={18} />
+          </button>
         </div>
 
         {/* 题目类型标签 */}
         <div className="quiz-type-badge">
-          {getQuizTypeIcon(currentQuiz.type)} {getQuizTypeName(currentQuiz.type)}
+          {getQuizTypeName(currentQuiz.type)}
         </div>
 
         {/* 题目内容 */}
@@ -209,8 +213,9 @@ export default function ReviewQuiz({ onClose, onComplete }) {
               <button
                 className="btn-speak-mini"
                 onClick={() => speakWord(currentQuiz.targetWord)}
+                aria-label="朗读单词"
               >
-                🔊
+                <Icon name="speaker" size={16} />
               </button>
             </div>
           )}
@@ -218,7 +223,7 @@ export default function ReviewQuiz({ onClose, onComplete }) {
           <p className="question-text">{currentQuiz.question}</p>
 
           {currentQuiz.hint && !showResult && (
-            <p className="question-hint">💡 {currentQuiz.hint}</p>
+            <p className="question-hint">{currentQuiz.hint}</p>
           )}
         </div>
 
@@ -263,9 +268,9 @@ export default function ReviewQuiz({ onClose, onComplete }) {
         {showResult && (
           <div className={`quiz-feedback ${selectedOption?.isCorrect ? 'correct' : 'wrong'}`}>
             {selectedOption?.isCorrect ? (
-              <p>✅ 正确!</p>
+              <p>正确</p>
             ) : (
-              <p>❌ 错误! 正确答案是: <strong>{currentQuiz.correctAnswer}</strong></p>
+              <p>错误，正确答案是: <strong>{currentQuiz.correctAnswer}</strong></p>
             )}
           </div>
         )}

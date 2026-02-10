@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { tts, loadTTSSettings, saveTTSSettings } from '../utils/tts.js';
+import Icon from './Icon.jsx';
 import './VoiceSettings.css';
 
 /**
@@ -94,8 +95,10 @@ export default function VoiceSettings({ isOpen, onClose }) {
     <div className="voice-settings-overlay" onClick={onClose}>
       <div className="voice-settings-panel" onClick={e => e.stopPropagation()}>
         <div className="panel-header">
-          <h3>🔊 语音设置</h3>
-          <button className="btn-close" onClick={onClose}>✕</button>
+          <h3>语音设置</h3>
+          <button className="btn-close" onClick={onClose} aria-label="关闭">
+            <Icon name="close" size={18} />
+          </button>
         </div>
 
         <div className="panel-content">
@@ -163,12 +166,12 @@ export default function VoiceSettings({ isOpen, onClose }) {
 
           {/* 测试按钮 */}
           <button className="btn-test" onClick={testVoice}>
-            🎵 测试发音
+            测试发音
           </button>
 
           {/* 说明 */}
           <div className="info">
-            <p>💡 提示:</p>
+            <p>提示:</p>
             <ul>
               <li>语速建议设为 0.7-0.9 方便学习</li>
               <li>某些浏览器语音质量更好(Safari/Chrome)</li>
