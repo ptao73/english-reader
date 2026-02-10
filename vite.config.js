@@ -56,8 +56,24 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-dexie': ['dexie', 'dexie-react-hooks'],
+        }
+      }
+    }
+  },
   server: {
     host: '0.0.0.0',  // 允许外部访问
-    port: 3000
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      }
+    }
   }
 });

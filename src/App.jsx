@@ -1,6 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
-import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { db } from './db/schema.js';
 import { parseArticle } from './utils/textParser.js';
 import { tts, loadTTSSettings } from './utils/tts.js';
@@ -9,13 +7,12 @@ import { getAiModelPreference, setAiModelPreference } from './utils/ai.js';
 import { fetchModelStatus } from './utils/modelStatus.js';
 import { isGitHubConfigured, syncArticles, getArticlesSyncStatus } from './utils/github.js';
 import Reader from './components/Reader.jsx';
-import VocabularyList from './components/VocabularyList.jsx';
-import Statistics from './components/Statistics.jsx';
 import Icon from './components/Icon.jsx';
 import './App.css';
 
-// 配置 PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+// 懒加载非首屏组件
+const VocabularyList = lazy(() => import('./components/VocabularyList.jsx'));
+const Statistics = lazy(() => import('./components/Statistics.jsx'));
 
 /**
  * 主应用组件
@@ -313,7 +310,8 @@ function App() {
         text = await file.text();
       } else if (ext === 'docx') {
         const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
+        const mammoth = await import('mammoth');
+        const result = await mammoth.default.extractRawText({ arrayBuffer });
         text = result.value;
 
         if (!text.trim()) {
@@ -323,6 +321,8 @@ function App() {
         }
       } else if (ext === 'pdf') {
         const arrayBuffer = await file.arrayBuffer();
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
         let fullText = '';
@@ -587,11 +587,15 @@ function App() {
         )}
 
         {view === 'vocabulary' && (
-          <VocabularyList onBack={() => setView('list')} />
+          <Suspense fallback={<div className="app-loading"><div className="spinner"></div></div>}>
+            <VocabularyList onBack={() => setView('list')} />
+          </Suspense>
         )}
 
         {view === 'statistics' && (
-          <Statistics onBack={() => setView('list')} />
+          <Suspense fallback={<div className="app-loading"><div className="spinner"></div></div>}>
+            <Statistics onBack={() => setView('list')} />
+          </Suspense>
         )}
       </main>
 

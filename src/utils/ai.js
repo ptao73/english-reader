@@ -6,15 +6,9 @@ import { db } from '../db/schema.js';
  * L1: IndexedDB本地缓存
  * L2: GitHub云端缓存(未来实现)
  * L3: 实时AI调用 (支持流式输出)
+ *
+ * 所有 AI 请求通过 /api/ai 代理，密钥仅存于服务端
  */
-
-const QWEN_API_KEY = import.meta.env.VITE_QWEN_API_KEY || '';
-const QWEN_MODEL = import.meta.env.VITE_QWEN_MODEL || 'qwen-plus';
-const QWEN_API_ENDPOINT = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
-
-const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
-const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash';
-const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 const MODEL_SETTINGS_KEY = 'ai_model_preference';
 
@@ -87,11 +81,34 @@ ${context ? `出现语境: "${context}"` : ''}
 只输出JSON,不要其他内容。
 `;
 
+// 缓存模型可用性，避免每次都查询
+let _modelStatus = null;
+let _modelStatusFetchedAt = 0;
+const MODEL_STATUS_TTL = 60000; // 1 分钟缓存
+
+async function fetchModelStatus() {
+  const now = Date.now();
+  if (_modelStatus && now - _modelStatusFetchedAt < MODEL_STATUS_TTL) {
+    return _modelStatus;
+  }
+  try {
+    const res = await fetch('/api/ai?action=status');
+    if (res.ok) {
+      _modelStatus = await res.json();
+      _modelStatusFetchedAt = now;
+    }
+  } catch {
+    // 网络失败时使用上次缓存
+  }
+  return _modelStatus || { qwen: false, gemini: false };
+}
+
 async function getPreferredModel() {
   const record = await db.settings.get(MODEL_SETTINGS_KEY);
   const stored = record?.value;
   if (stored === 'gemini' || stored === 'qwen') return stored;
-  if (GOOGLE_API_KEY) return 'gemini';
+  const status = await fetchModelStatus();
+  if (status.gemini) return 'gemini';
   return 'qwen';
 }
 
@@ -113,58 +130,109 @@ function shouldFallback(err) {
 }
 
 async function callGeminiAPI(prompt) {
-  if (!GOOGLE_API_KEY) {
-    throw new Error('未配置GOOGLE_API_KEY,请在.env文件中设置VITE_GOOGLE_API_KEY');
-  }
-
-  const response = await fetch(`${GEMINI_API_ENDPOINT}/${GEMINI_MODEL}:generateContent?key=${GOOGLE_API_KEY}`, {
+  const response = await fetch('/api/ai', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      contents: [
-        { role: 'user', parts: [{ text: prompt }] }
-      ],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1500
-      }
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, model: 'gemini' }),
   });
 
   if (!response.ok) {
-    let errorMessage = response.statusText;
-    try {
-      const error = await response.json();
-      errorMessage = error.error?.message || errorMessage;
-    } catch {}
-    throw new Error(`API调用失败: ${errorMessage}`);
+    const error = await response.json().catch(() => ({}));
+    throw new Error(`API调用失败: ${error.error || response.statusText}`);
   }
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
-  if (!text) {
-    throw new Error('AI返回为空');
+  return response.json();
+}
+
+async function callQwenAPI(prompt) {
+  const response = await fetch('/api/ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, model: 'qwen' }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(`API调用失败: ${error.error || response.statusText}`);
   }
+
+  return response.json();
+}
+
+async function callQwenAPIStream(prompt, onChunk) {
+  const response = await fetch('/api/ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, model: 'qwen', stream: true }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(`API调用失败: ${error.error || response.statusText}`);
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+
+  // 如果服务端回退到了非流式（如 Gemini fallback），直接解析 JSON
+  if (contentType.includes('application/json')) {
+    const result = await response.json();
+    if (onChunk) {
+      const fullText = JSON.stringify(result, null, 2);
+      onChunk(fullText, fullText);
+    }
+    return result;
+  }
+
+  // SSE 流式读取
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
 
   try {
-    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanText);
-  } catch (e) {
-    console.error('JSON解析失败:', text);
-    throw new Error('AI返回格式错误');
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n').filter((line) => line.trim() !== '');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices[0]?.delta?.content || '';
+            if (content) {
+              fullText += content;
+              if (onChunk) {
+                onChunk(content, fullText);
+              }
+            }
+          } catch {
+            // 忽略解析失败的行
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
   }
+
+  const cleanText = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  return JSON.parse(cleanText);
 }
 
 async function callWithFallback(prompt) {
   const preferred = await getPreferredModel();
+  const status = await fetchModelStatus();
 
   if (preferred === 'gemini') {
     try {
       return await callGeminiAPI(prompt);
     } catch (err) {
-      if (!shouldFallback(err) && GOOGLE_API_KEY) {
+      if (!shouldFallback(err) && status.gemini) {
         throw err;
       }
       return await callQwenAPI(prompt);
@@ -174,7 +242,7 @@ async function callWithFallback(prompt) {
   try {
     return await callQwenAPI(prompt);
   } catch (err) {
-    if (!shouldFallback(err) && QWEN_API_KEY) {
+    if (!shouldFallback(err) && status.qwen) {
       throw err;
     }
     return await callGeminiAPI(prompt);
@@ -183,6 +251,7 @@ async function callWithFallback(prompt) {
 
 async function callWithFallbackStream(prompt, onChunk) {
   const preferred = await getPreferredModel();
+  const status = await fetchModelStatus();
 
   if (preferred === 'gemini') {
     try {
@@ -202,7 +271,7 @@ async function callWithFallbackStream(prompt, onChunk) {
       }
       return result;
     } catch (err) {
-      if (!shouldFallback(err) && GOOGLE_API_KEY) {
+      if (!shouldFallback(err) && status.gemini) {
         throw err;
       }
       return await callQwenAPIStream(prompt, onChunk);
@@ -212,7 +281,7 @@ async function callWithFallbackStream(prompt, onChunk) {
   try {
     return await callQwenAPIStream(prompt, onChunk);
   } catch (err) {
-    if (!shouldFallback(err) && QWEN_API_KEY) {
+    if (!shouldFallback(err) && status.qwen) {
       throw err;
     }
     const result = await callGeminiAPI(prompt);
@@ -234,134 +303,6 @@ async function callWithFallbackStream(prompt, onChunk) {
 }
 
 /**
- * 调用通义千问 API (非流式)
- */
-async function callQwenAPI(prompt) {
-  if (!QWEN_API_KEY) {
-    throw new Error('未配置QWEN_API_KEY,请在.env文件中设置VITE_QWEN_API_KEY');
-  }
-
-  const response = await fetch(QWEN_API_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${QWEN_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: QWEN_MODEL,
-      messages: [
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 1500
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`API调用失败: ${error.error?.message || response.statusText}`);
-  }
-
-  const data = await response.json();
-  const text = data.choices[0].message.content;
-  
-  // 解析JSON响应
-  try {
-    // 去除可能的markdown代码块标记
-    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanText);
-  } catch (e) {
-    console.error('JSON解析失败:', text);
-    throw new Error('AI返回格式错误');
-  }
-}
-
-/**
- * 调用通义千问 API (流式输出) ⭐ 新增
- * @param {string} prompt - 提示词
- * @param {Function} onChunk - 接收流式数据的回调函数
- * @returns {Promise<Object>} - 完整的分析结果
- */
-async function callQwenAPIStream(prompt, onChunk) {
-  if (!QWEN_API_KEY) {
-    throw new Error('未配置QWEN_API_KEY,请在.env文件中设置VITE_QWEN_API_KEY');
-  }
-
-  const response = await fetch(QWEN_API_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${QWEN_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: QWEN_MODEL,
-      messages: [
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 1500,
-      stream: true  // 启用流式输出
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`API调用失败: ${error.error?.message || response.statusText}`);
-  }
-
-  // 读取流式响应
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let fullText = '';
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter(line => line.trim() !== '');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          
-          if (data === '[DONE]') continue;
-
-          try {
-            const parsed = JSON.parse(data);
-            const content = parsed.choices[0]?.delta?.content || '';
-            
-            if (content) {
-              fullText += content;
-              
-              // 回调给前端显示
-              if (onChunk) {
-                onChunk(content, fullText);
-              }
-            }
-          } catch (e) {
-            console.warn('解析流式数据失败:', e);
-          }
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  // 解析完整JSON
-  try {
-    const cleanText = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanText);
-  } catch (e) {
-    console.error('JSON解析失败:', fullText);
-    throw new Error('AI返回格式错误');
-  }
-}
-
-/**
  * 获取句子分析(三层缓存) - 非流式版本
  * @param {string} sentenceId - 句子ID
  * @param {string} sentenceText - 句子文本
@@ -374,9 +315,6 @@ export async function getSentenceAnalysis(sentenceId, sentenceText) {
     console.log('✅ L1缓存命中:', sentenceId);
     return cached.data;
   }
-
-  // L2: 查询GitHub缓存(未来实现)
-  // TODO: 实现GitHub缓存查询
 
   // L3: 调用AI
   console.log('🔄 调用AI分析:', sentenceId);
@@ -407,7 +345,7 @@ export async function getSentenceAnalysis(sentenceId, sentenceText) {
 }
 
 /**
- * 获取句子分析(三层缓存) - 流式版本 ⭐ 新增
+ * 获取句子分析(三层缓存) - 流式版本
  * @param {string} sentenceId - 句子ID
  * @param {string} sentenceText - 句子文本
  * @param {Function} onChunk - 流式回调函数 (chunk, fullText) => void
@@ -418,7 +356,7 @@ export async function getSentenceAnalysisStream(sentenceId, sentenceText, onChun
   const cached = await db.aiCache.get(sentenceId);
   if (cached) {
     console.log('✅ L1缓存命中:', sentenceId);
-    
+
     // 模拟流式输出缓存内容
     if (onChunk) {
       const fullText = JSON.stringify(cached.data, null, 2);
@@ -433,12 +371,9 @@ export async function getSentenceAnalysisStream(sentenceId, sentenceText, onChun
         onChunk(chunk, fullText.slice(0, index));
       }, 20);
     }
-    
+
     return cached.data;
   }
-
-  // L2: 查询GitHub缓存(未来实现)
-  // TODO: 实现GitHub缓存查询
 
   // L3: 调用AI (流式)
   console.log('🔄 调用AI分析(流式):', sentenceId);
@@ -491,22 +426,19 @@ export async function getWordAnalysis(word, context = '') {
   const cacheKey = `word:${cleanWord}`;
 
   try {
-    // L1: 查询本地缓存 (优先使用本地缓存，避免重复 API 调用)
+    // L1: 查询本地缓存
     const cached = await db.aiCache.get(cacheKey);
     if (cached) {
       console.log('✅ 单词缓存命中:', cleanWord);
       return cached.data;
     }
 
-    // L2: 查询GitHub缓存(未来实现)
-    // TODO: 实现GitHub缓存查询
-
-    // L3: 调用AI (缓存未命中时才调用，节省 API 成本)
+    // L3: 调用AI
     console.log('🔄 调用AI分析单词:', cleanWord);
     const prompt = WORD_ANALYSIS_PROMPT(word, context);
     const result = await callWithFallback(prompt);
 
-    // 包装完整数据，使用默认值防止 undefined
+    // 包装完整数据
     const wordData = {
       word: cleanWord,
       originalWord: word,
@@ -521,7 +453,7 @@ export async function getWordAnalysis(word, context = '') {
       cachedAt: new Date().toISOString()
     };
 
-    // 写入L1缓存 (异步写入，不阻塞返回)
+    // 写入L1缓存
     await db.aiCache.put({
       key: cacheKey,
       type: 'word',
@@ -552,7 +484,7 @@ export async function clearCache() {
 export async function getCacheStats() {
   const sentenceCacheCount = await db.aiCache.where('type').equals('sentence').count();
   const wordCacheCount = await db.aiCache.where('type').equals('word').count();
-  
+
   return {
     sentences: sentenceCacheCount,
     words: wordCacheCount,
@@ -567,3 +499,5 @@ export async function getAiModelPreference() {
 export async function setAiModelPreference(model) {
   return await setPreferredModel(model);
 }
+
+export { fetchModelStatus };
