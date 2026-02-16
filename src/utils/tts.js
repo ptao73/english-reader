@@ -540,6 +540,13 @@ class TextToSpeech {
    * 注意：设置合并全部同步完成，不在用户手势和 speak() 之间插入异步操作
    */
   speak(text, options = {}) {
+    // OpenAI TTS 已禁用，强制使用浏览器引擎（Mac系统语音）
+    if (this.engine instanceof OpenAITTSEngine) {
+      console.log('⏸️ OpenAI TTS 已禁用，回退到浏览器语音');
+      this.engineType = 'browser';
+      this.engine = this._createEngine('browser');
+    }
+
     const saved = this.currentSettings || {};
     const merged = {
       rate: saved.rate || 0.85,
@@ -616,19 +623,12 @@ export const checkOpenAIAvailability = OpenAITTSEngine.checkAvailability;
 // 创建单例（默认浏览器引擎，稍后自动恢复上次选择）
 export const tts = new TextToSpeech('browser');
 
-// 初始化：从 IndexedDB 恢复上次的引擎选择
+// 初始化：从 IndexedDB 恢复设置（OpenAI引擎已禁用，强制使用浏览器语音）
 (async () => {
   try {
     const settings = await loadTTSSettings();
+    settings.engineType = 'browser'; // 强制浏览器引擎
     tts.applySettings(settings);
-    if (settings.engineType === 'openai') {
-      const available = await OpenAITTSEngine.checkAvailability();
-      if (available) {
-        tts.engineType = 'openai';
-        tts.engine = tts._createEngine('openai');
-        console.log('已恢复 OpenAI TTS 引擎');
-      }
-    }
   } catch (e) {
     // 静默失败，使用浏览器引擎
   }
