@@ -219,7 +219,12 @@ class BrowserTTSEngine extends TTSEngine {
     }
   }
 
-  async speak(text, options = {}) {
+  /**
+   * 朗读文本 — 全同步路径，不含任何 await
+   * iOS 要求从用户手势 (click) 到 speechSynthesis.speak() 的整条调用链
+   * 必须是同步的，任何 await/Promise 都会打断手势链导致静默失败
+   */
+  speak(text, options = {}) {
     // iOS warm-up（同步，在用户手势栈中）
     this._iosWarmUp();
 
@@ -228,8 +233,9 @@ class BrowserTTSEngine extends TTSEngine {
     this.isSpeaking = false;
     this.currentUtterance = null;
 
-    // 等待语音列表加载完毕
-    await ensureVoicesReady();
+    // 注意：不在这里 await ensureVoicesReady()
+    // 语音列表在模块加载时已预加载，这里同步获取即可
+    // 如果还没加载完，getVoices() 会返回空数组，utterance.lang 会兜底
 
     return new Promise((resolve, reject) => {
       const attemptSpeak = (retryNum = 0) => {
