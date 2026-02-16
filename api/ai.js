@@ -140,7 +140,7 @@ async function callQwen(prompt) {
 
 async function callGemini(prompt) {
   const apiKey = process.env.GOOGLE_API_KEY;
-  const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
   if (!apiKey) {
     throw new Error('服务端未配置 GOOGLE_API_KEY');
