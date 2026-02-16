@@ -634,12 +634,52 @@ export const tts = new TextToSpeech('browser');
   }
 })();
 
-// 预加载语音列表（ensureVoicesReady 内部已处理 onvoiceschanged）
+// 预加载语音列表 + 诊断输出
 if (window.speechSynthesis) {
   ensureVoicesReady().then(() => {
     const voices = tts.getAllVoices();
     const englishVoices = voices.filter(v => v.lang.startsWith('en-'));
     console.log(`语音列表已加载: 共 ${voices.length} 个，英文 ${englishVoices.length} 个`);
+
+    // ===== TTS 诊断：打印所有可用语音 =====
+    console.group('🔍 TTS 诊断 — 全部可用语音列表');
+    console.table(voices.map((v, i) => ({
+      '#': i,
+      name: v.name,
+      voiceURI: v.voiceURI,
+      lang: v.lang,
+      localService: v.localService,
+      default: v.default,
+    })));
+    console.groupEnd();
+
+    console.group('🔍 TTS 诊断 — 英文语音');
+    englishVoices.forEach(v => {
+      console.log(`  [${v.lang}] ${v.name} | URI: ${v.voiceURI} | local: ${v.localService} | default: ${v.default}`);
+    });
+    console.groupEnd();
+
+    // 检查 Ava 是否存在
+    const avaVoices = voices.filter(v => v.name.toLowerCase().includes('ava'));
+    if (avaVoices.length > 0) {
+      console.log('✅ 找到 Ava 语音:', avaVoices.map(v => `${v.name} (${v.voiceURI})`));
+    } else {
+      console.warn('⚠️ 未找到 Ava 语音。偏好列表中的声音可能不可用。');
+      // 打印实际会选中的语音
+      const selected = tts.getEnglishVoices();
+      if (selected) {
+        console.log('📢 当前自动选择的英文语音:', selected.name, '|', selected.voiceURI, '|', selected.lang);
+      } else {
+        console.error('❌ 没有找到任何英文语音！将使用系统默认语音（可能是中文）');
+      }
+    }
+
+    // 测试: 用选中的语音尝试一次静默 speak，检查是否报错
+    const testVoice = tts.getEnglishVoices();
+    console.log('🎯 最终选定语音:', testVoice ? `${testVoice.name} (${testVoice.voiceURI})` : '无 — 将依赖 lang 属性兜底');
+    console.log('📱 iOS 设备:', isIOS ? '是' : '否');
+    console.log('🌐 User Agent:', navigator.userAgent);
+    // ===== 诊断结束 =====
   });
 }
 
