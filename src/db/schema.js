@@ -70,6 +70,26 @@ class EnglishLearningDB extends Dexie {
       settings: 'key'
     });
 
+    // Version 3: 添加 TTS 音频缓存表
+    this.version(3).stores({
+      articles: 'id, title, createdAt, updatedAt',
+      sentences: 'sentenceId, docId, text, level, updatedAt',
+      aiCache: 'key, type, createdAt',
+      vocabulary: '++id, word, nextReview, mastered, createdAt',
+      progress: 'docId, currentSentenceId, percentage, lastReadAt',
+      revealState: 'sentenceId, level, updatedAt',
+      models: 'name, version, downloadedAt',
+      reviewHistory: '++id, wordId, quizType, isCorrect, reviewedAt',
+      learningStats: 'date',
+      settings: 'key',
+
+      // TTS 音频缓存
+      // key: 文本+声音的 hash（同一句话不同声音分开缓存）
+      // blob: 音频二进制数据(mp3)
+      // createdAt: 缓存时间
+      ttsCache: 'key, createdAt'
+    });
+
     // 表引用
     this.articles = this.table('articles');
     this.sentences = this.table('sentences');
@@ -81,6 +101,7 @@ class EnglishLearningDB extends Dexie {
     this.reviewHistory = this.table('reviewHistory');
     this.learningStats = this.table('learningStats');
     this.settings = this.table('settings');
+    this.ttsCache = this.table('ttsCache');
   }
 }
 

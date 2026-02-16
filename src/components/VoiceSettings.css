@@ -1,6 +1,6 @@
 /*
  * VoiceSettings.css - iPhone 优化版
- * 语音设置移动端样式
+ * 支持引擎切换 + OpenAI 声音卡片
  */
 
 /* 语音设置遮罩 */
@@ -73,6 +73,112 @@
 
 .btn-close:active {
   opacity: 0.7;
+}
+
+/* ============================================================
+   引擎切换按钮组
+   ============================================================ */
+.engine-switch {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: 3px;
+}
+
+.engine-btn {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.engine-btn.active {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.engine-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.engine-btn:active:not(:disabled) {
+  opacity: 0.7;
+}
+
+/* OpenAI 未配置提示 */
+.openai-unavailable {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  background: rgba(255, 149, 0, 0.1);
+  border-radius: var(--radius-md);
+}
+
+/* ============================================================
+   OpenAI 声音卡片网格
+   ============================================================ */
+.openai-voice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.voice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1.5px solid var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.voice-card.selected {
+  border-color: var(--color-primary);
+  background: rgba(0, 122, 255, 0.06);
+}
+
+.voice-card:active {
+  opacity: 0.7;
+}
+
+.voice-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.voice-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  background: var(--color-primary);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.voice-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 /* 面板内容 */
@@ -235,6 +341,9 @@
   .info {
     background: rgba(0, 122, 255, 0.15);
   }
+  .voice-card.selected {
+    background: rgba(0, 122, 255, 0.12);
+  }
 }
 
 /* 大屏幕适配 */
@@ -248,5 +357,9 @@
     max-width: 500px;
     border-radius: var(--radius-xl);
     max-height: 80vh;
+  }
+
+  .openai-voice-grid {
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }

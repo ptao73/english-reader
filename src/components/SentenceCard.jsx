@@ -122,29 +122,27 @@ export default function SentenceCard({
 
   /**
    * 朗读句子
+   * 注意：不在 tts.speak() 前使用 await，保证 iOS 用户手势链不被打断
    */
-  async function speakSentence() {
+  function speakSentence() {
     if (isSpeaking) {
       tts.stop();
       setIsSpeaking(false);
       return;
     }
 
-    try {
-      await tts.speak(sentence.text, {
-        rate: 0.85,
-        onStart: () => setIsSpeaking(true),
-        onEnd: () => setIsSpeaking(false),
-        onError: (err) => {
-          console.error('朗读失败:', err);
-          setIsSpeaking(false);
-          alert('朗读失败,请重试');
-        }
-      });
-    } catch (err) {
+    tts.speak(sentence.text, {
+      rate: 0.85,
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+      onError: (err) => {
+        console.error('朗读失败:', err);
+        setIsSpeaking(false);
+      }
+    }).catch(err => {
       console.error('朗读异常:', err);
       setIsSpeaking(false);
-    }
+    });
   }
 
   /**

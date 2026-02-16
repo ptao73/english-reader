@@ -47,7 +47,9 @@ export default function ReviewQuiz({ onClose, onComplete }) {
   }
 
   function speakWord(text) {
-    tts.speak(text, { rate: 0.8 });
+    tts.speak(text, { rate: 0.8 }).catch(err => {
+      console.error('单词朗读失败:', err);
+    });
   }
 
   async function handleOptionSelect(option) {
