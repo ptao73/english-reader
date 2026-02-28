@@ -244,6 +244,17 @@
   background: var(--text-tertiary);
 }
 
+.btn-dictation-entry {
+  background: none;
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-dictation-entry:active:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
 /* 文章头部 */
 .reader-header {
   padding: 20px 16px 16px;

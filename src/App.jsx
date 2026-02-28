@@ -607,7 +607,7 @@ function App() {
       <main className="app-main">
         {view === 'reading' && currentArticle && (
           <div className="reading-view">
-            <Reader article={currentArticle} onBack={backToList} />
+            <Reader article={currentArticle} onBack={backToList} onDictation={() => startDictation(currentArticle)} />
           </div>
         )}
 

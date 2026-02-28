@@ -6,6 +6,7 @@ import { recordActivity } from '../utils/statistics.js';
 import { initializeWordSM2 } from '../utils/spacedRepetition.js';
 import { preCacheArticle, getArticleCacheProgress } from '../utils/preCache.js';
 import SentenceCard from './SentenceCard.jsx';
+import Icon from './Icon.jsx';
 import './Reader.css';
 
 /**
@@ -19,7 +20,7 @@ import './Reader.css';
  * 5. 朗读控制
  * 6. 预加载分析缓存
  */
-export default function Reader({ article, onBack }) {
+export default function Reader({ article, onBack, onDictation }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(null);
@@ -386,6 +387,16 @@ export default function Reader({ article, onBack }) {
           >
             ▶
           </button>
+          {onDictation && (
+            <button
+              className="btn-control btn-dictation-entry"
+              onClick={onDictation}
+              title="精读模式"
+              aria-label="精读模式"
+            >
+              <Icon name="headphones" size={18} />
+            </button>
+          )}
         </div>
       </div>
 
