@@ -1,0 +1,283 @@
+/*
+ * Dictation.css - 精读/听写模式样式
+ * iOS 风格，复用项目 CSS 变量
+ */
+
+/* ===== 容器 ===== */
+.dictation-view {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 顶部栏 ===== */
+.dictation-header {
+  background: var(--bg-secondary);
+  padding: var(--safe-area-top) 16px 12px;
+  border-bottom: 0.5px solid var(--bg-tertiary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dictation-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dictation-back {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 15px;
+  padding: 4px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dictation-title {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dictation-progress-badge {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* ===== 主区域 ===== */
+.dictation-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  gap: 24px;
+}
+
+/* 状态指示 */
+.dictation-status {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  min-height: 20px;
+}
+
+.dictation-status.playing {
+  color: var(--color-primary);
+}
+
+/* 重复次数指示器 */
+.dictation-repeats {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.repeat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  transition: background 0.2s;
+}
+
+.repeat-dot.filled {
+  background: var(--color-primary);
+}
+
+/* 句子文本显示 */
+.dictation-sentence-area {
+  width: 100%;
+  max-width: 600px;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg, 16px);
+  text-align: center;
+}
+
+.dictation-sentence-text {
+  font-size: 20px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.dictation-sentence-hidden {
+  font-size: 16px;
+  color: var(--text-tertiary, #999);
+  font-style: italic;
+}
+
+/* ===== 控制栏 ===== */
+.dictation-controls {
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border-top: 0.5px solid var(--bg-tertiary);
+}
+
+.dictation-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.dictation-controls-row:last-child {
+  margin-bottom: 0;
+}
+
+.dictation-btn {
+  background: none;
+  border: 1.5px solid var(--bg-tertiary);
+  border-radius: var(--radius-md, 12px);
+  color: var(--text-primary);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dictation-btn:active {
+  transform: scale(0.92);
+  background: var(--bg-tertiary);
+}
+
+.dictation-btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.dictation-btn-play {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: none;
+  color: #fff;
+}
+
+.dictation-btn-play:active {
+  background: var(--color-primary);
+  opacity: 0.85;
+}
+
+.dictation-btn-play.stop {
+  background: var(--color-danger, #ff3b30);
+}
+
+.dictation-btn-toggle {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 14px;
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ===== 设置区 ===== */
+.dictation-settings {
+  padding: 0 20px 20px;
+}
+
+.dictation-settings-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 8px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.dictation-settings-body {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md, 12px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.dictation-setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dictation-setting-label {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.dictation-setting-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dictation-setting-control button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-tertiary);
+  background: none;
+  color: var(--text-primary);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dictation-setting-control button:active {
+  background: var(--bg-tertiary);
+}
+
+.dictation-setting-control button:disabled {
+  opacity: 0.3;
+}
+
+.dictation-setting-value {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-primary);
+  min-width: 24px;
+  text-align: center;
+}
+
+/* ===== 底部安全区 ===== */
+.dictation-safe-bottom {
+  height: var(--safe-area-bottom);
+}

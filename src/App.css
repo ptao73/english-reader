@@ -335,8 +335,13 @@
   color: var(--text-secondary);
 }
 
+.card-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .btn-read {
-  width: 100%;
+  flex: 1;
   background: var(--color-primary);
   color: white;
   border: none;
@@ -348,6 +353,26 @@
 
 .btn-read:active {
   background: var(--color-primary-dark);
+}
+
+.btn-dictation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary);
+  padding: 14px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-dictation:active {
+  background: var(--color-primary);
+  color: white;
 }
 
 /* ===== 空状态 ===== */

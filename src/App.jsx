@@ -8,6 +8,7 @@ import { fetchModelStatus } from './utils/modelStatus.js';
 import { isGitHubConfigured, syncArticles, getArticlesSyncStatus } from './utils/github.js';
 import { preCacheArticle } from './utils/preCache.js';
 import Reader from './components/Reader.jsx';
+import Dictation from './components/Dictation.jsx';
 import Icon from './components/Icon.jsx';
 import './App.css';
 
@@ -411,6 +412,11 @@ function App() {
     setView('reading');
   }
 
+  function startDictation(article) {
+    setCurrentArticle(article);
+    setView('dictation');
+  }
+
   function backToList() {
     setCurrentArticle(null);
     setView('list');
@@ -471,7 +477,7 @@ function App() {
   }
 
   return (
-    <div className={`app ${view === 'reading' ? 'is-reading' : ''}`}>
+    <div className={`app ${view === 'reading' || view === 'dictation' ? 'is-reading' : ''}`}>
       {/* 隐藏的文件输入 */}
       <input
         ref={fileInputRef}
@@ -605,12 +611,17 @@ function App() {
           </div>
         )}
 
+        {view === 'dictation' && currentArticle && (
+          <Dictation article={currentArticle} onBack={backToList} />
+        )}
+
         {view === 'list' && (
           <ArticleList
             articles={articles}
             syncStatus={articlesSyncStatus}
             preCacheProgress={preCacheProgress}
             onRead={startReading}
+            onDictation={startDictation}
             onDelete={deleteArticle}
           />
         )}
@@ -669,7 +680,7 @@ function App() {
 /**
  * 文章列表组件
  */
-function ArticleList({ articles, syncStatus, preCacheProgress, onRead, onDelete }) {
+function ArticleList({ articles, syncStatus, preCacheProgress, onRead, onDictation, onDelete }) {
   const [progressMap, setProgressMap] = useState({});
 
   useEffect(() => {
@@ -774,12 +785,23 @@ function ArticleList({ articles, syncStatus, preCacheProgress, onRead, onDelete 
                 </div>
               )}
 
-              <button
-                className="btn-read"
-                onClick={() => onRead(article)}
-              >
-                {progress?.percentage > 0 ? '继续阅读' : '开始阅读'}
-              </button>
+              <div className="card-actions">
+                <button
+                  className="btn-read"
+                  onClick={() => onRead(article)}
+                >
+                  {progress?.percentage > 0 ? '继续阅读' : '开始阅读'}
+                </button>
+                <button
+                  className="btn-dictation"
+                  onClick={() => onDictation(article)}
+                  title="精读模式"
+                  aria-label="精读模式"
+                >
+                  <Icon name="headphones" size={16} />
+                  精读
+                </button>
+              </div>
             </div>
           );
         })}
