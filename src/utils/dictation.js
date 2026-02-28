@@ -15,7 +15,7 @@ export class DictationEngine {
     this.isPlaying = false;
     this.timer = null;
     this.config = { repeats: 3, interval: 3000 };
-    this._speakPromise = null;
+    this._generation = 0; // 用于作废旧的 Promise 回调
 
     // 状态回调钩子：供外部 UI 订阅状态变化
     this.onStateChange = null;
@@ -119,9 +119,9 @@ export class DictationEngine {
   // ---- 私有方法 ----
 
   _stopAudio() {
+    this._generation++; // 作废所有旧回调
     tts.stop();
     clearTimeout(this.timer);
-    this._speakPromise = null;
   }
 
   _playEngine() {
@@ -134,12 +134,14 @@ export class DictationEngine {
     }
 
     const sentence = this.sentences[this.currentIndex];
+    const gen = this._generation; // 捕获当前代次
     this._notify('playing');
 
     // 使用项目 TTS 单例播放，自动继承用户语音设置
-    this._speakPromise = tts.speak(sentence)
+    tts.speak(sentence)
       .then(() => {
-        if (!this.isPlaying) return;
+        // 如果已被 stop/skip/restart 作废，忽略
+        if (gen !== this._generation || !this.isPlaying) return;
 
         this.currentRepeatCount++;
         if (this.currentRepeatCount < this.config.repeats) {
@@ -158,8 +160,7 @@ export class DictationEngine {
         }
       })
       .catch(() => {
-        // 被 stop/skip 打断时忽略错误
-        if (!this.isPlaying) return;
+        // 被 stop/skip/restart 打断，忽略
       });
   }
 
